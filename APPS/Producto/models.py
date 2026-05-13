@@ -27,8 +27,8 @@ class Producto(models.Model):
     dimensiones = models.CharField(max_length=100, blank=True)
 
 
-    url_miniatura = models.URLField(max_length=500, blank=True, null=True)
-    url_modelo_3d = models.URLField(max_length=500, blank=True, null=True)
+    url_miniatura = models.ImageField(upload_to='productos/miniaturas/', null=True, blank=True)
+    url_modelo_3d = models.FileField(upload_to='productos/modelos_3d/', null=True, blank=True)
 
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)

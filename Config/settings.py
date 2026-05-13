@@ -150,7 +150,7 @@ EMAIL_HOST_PASSWORD = 'tu-contraseña-de-aplicacion' # Contraseña segura de Goo
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 # La URL pública para el navegador (siempre debe terminar en /)
-MEDIA_URL = '/Media/'
+MEDIA_URL = '/media/'
 
 # Configuramos la ruta física en el servidor
 if os.environ.get('RAILWAY_ENVIRONMENT'):
@@ -158,7 +158,7 @@ if os.environ.get('RAILWAY_ENVIRONMENT'):
     MEDIA_ROOT = '/app/media/'
 else:
     # En tu computadora local, se sigue guardando en la carpeta de tu proyecto
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'Media')
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 # Permite que Django responda en el dominio de Railway
