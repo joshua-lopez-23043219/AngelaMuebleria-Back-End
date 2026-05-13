@@ -19,6 +19,7 @@ import os
 from django.contrib import admin
 from django.conf.urls.static import static
 from django.urls import include, path
+from rest_framework_simplejwt.views import TokenObtainPairView , TokenRefreshView
 
 from APPS.Categoria.API.Urls import routerCategoria
 from APPS.ComboPedidos.API.Urls import routerComboPedido
@@ -47,6 +48,11 @@ urlpatterns = [
     path('apiProducto/', include(routerProducto.urls)),
     path('apiVarianteProducto/',include(routerVarianteProducto.urls)),
     path('apiUsuarios',include(routerUsuario.urls)),
+
+# Ruta para obtener el token (Login)
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # Ruta para renovar el token
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
 
 if settings.DEBUG or os.environ.get('RAILWAY_ENVIRONMENT'):
