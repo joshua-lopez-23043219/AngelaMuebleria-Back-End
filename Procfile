@@ -1,1 +1,1 @@
-web : gunicorn Angela_Muebleria.wsgi
+web : gunicorn Config.wsgi
