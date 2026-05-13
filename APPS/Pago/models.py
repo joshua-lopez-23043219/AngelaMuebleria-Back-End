@@ -29,7 +29,7 @@ class Pago(models.Model):
 
     metodo_pago = models.CharField(max_length=20, choices=OPCIONES_METODO)
     id_transaccion = models.CharField(max_length=255, blank=True, null=True)
-    imagen_comprobante = models.ImageField(upload_to='comprobantes/%Y/%m/', blank=True, null=True)
+    imagen_comprobante = models.ImageField(upload_to='comprobantes/%Y/%m/%d/', blank=True, null=True)
 
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     estado = models.CharField(max_length=20, choices=OPCIONES_ESTADO, default='pendiente')
