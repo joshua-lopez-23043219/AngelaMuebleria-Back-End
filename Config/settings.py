@@ -169,6 +169,8 @@ ALLOWED_HOSTS = [
     'localhost'
 ]
 
+
+
 # Permite iniciar sesión y enviar formularios desde el dominio seguro (https)
 CSRF_TRUSTED_ORIGINS = [
     'https://web-production-93930.up.railway.app',
