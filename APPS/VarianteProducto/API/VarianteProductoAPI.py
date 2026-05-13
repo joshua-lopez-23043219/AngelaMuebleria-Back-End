@@ -10,7 +10,7 @@ from APPS.VarianteProducto.models import VarianteProducto
 
 class VarianteProductoViewsSet (ModelViewSet):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     queryset = VarianteProducto.objects.all()
     serializer_class = SerializerVarianteProducto
 

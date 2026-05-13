@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
@@ -43,7 +44,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'mssql',
     'drf_yasg',
-    "corsheaders",
+    'corsheaders',
+    'rest_framework_simplejwt',
 
 
 
@@ -76,6 +78,21 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'Config.urls'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+
+
 
 TEMPLATES = [
     {

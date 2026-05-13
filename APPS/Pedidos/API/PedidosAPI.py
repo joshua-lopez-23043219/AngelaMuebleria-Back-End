@@ -10,7 +10,7 @@ from APPS.Pedidos.models import Pedido
 
 class PedidosViewsSet (ModelViewSet):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     queryset = Pedido.objects.all()
     serializer_class = SerializerPedidos
 

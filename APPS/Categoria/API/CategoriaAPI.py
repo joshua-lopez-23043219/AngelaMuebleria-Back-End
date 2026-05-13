@@ -10,7 +10,7 @@ from APPS.Categoria.models import Categoria
 
 class CategoriaViewsSet (ModelViewSet):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     queryset = Categoria.objects.all()
     serializer_class = SerializerCategoria
 

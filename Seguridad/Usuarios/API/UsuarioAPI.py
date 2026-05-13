@@ -10,7 +10,7 @@ from Seguridad.Usuarios.models import Usuario
 
 class UsuarioViewsSet (ModelViewSet):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     queryset = Usuario.objects.all()
     serializer_class = SerializerUsuario
 

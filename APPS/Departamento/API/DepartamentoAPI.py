@@ -10,7 +10,7 @@ from APPS.Departamento.models import Departamento
 
 class DepartamentoViewsSet (ModelViewSet):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     queryset = Departamento.objects.all()
     serializer_class = SerializerDepartamento
 

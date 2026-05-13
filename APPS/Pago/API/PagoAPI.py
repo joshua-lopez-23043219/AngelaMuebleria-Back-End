@@ -9,7 +9,7 @@ from APPS.Pago.models import Pago
 
 class PagoViewsSet (ModelViewSet):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     queryset = Pago.objects.all()
     serializer_class = SerializerPago
 

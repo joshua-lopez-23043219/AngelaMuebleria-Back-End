@@ -11,7 +11,7 @@ from APPS.Facturas.models import Factura
 
 class FacturaViewsSet (ModelViewSet):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     queryset = Factura.objects.all()
     serializer_class = SerializerFactura
 

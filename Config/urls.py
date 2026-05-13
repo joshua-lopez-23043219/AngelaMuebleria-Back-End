@@ -31,6 +31,8 @@ from APPS.Pedidos.API.Urls import routerPedidos
 from APPS.Producto.API.Urls import routerProducto
 from APPS.VarianteProducto.API.Urls import routerVarianteProducto
 from Config import settings
+from Seguridad.Usuarios.API.Urls import routerUsuario
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -44,6 +46,7 @@ urlpatterns = [
     path('apiPedidos/', include(routerPedidos.urls)),
     path('apiProducto/', include(routerProducto.urls)),
     path('apiVarianteProducto/',include(routerVarianteProducto.urls)),
+    path('apiUsuarios',include(routerUsuario.urls)),
 ]
 
 if settings.DEBUG or os.environ.get('RAILWAY_ENVIRONMENT'):

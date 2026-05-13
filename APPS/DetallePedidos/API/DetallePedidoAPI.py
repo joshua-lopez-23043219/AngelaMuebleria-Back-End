@@ -12,7 +12,7 @@ from APPS.DetallePedidos.models import DetallePedido
 
 class DetallePedidoViewsSet (ModelViewSet):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     queryset = DetallePedido.objects.all()
     serializer_class = SerializerDetallePedido
 

@@ -10,7 +10,7 @@ from APPS.ComboPedidos.models import ComboPedido
 
 class ComboPedidoViewsSet (ModelViewSet):
 
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     queryset = ComboPedido.objects.all()
     serializer_class = SerializerComboPedido
 
