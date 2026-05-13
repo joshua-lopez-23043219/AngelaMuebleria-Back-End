@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -96,18 +98,10 @@ WSGI_APPLICATION = 'Config.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'mssql',
-            'NAME': 'ANGELAMUEBLERIA',
-            'HOST': 'DESKTOP-9VH7CLA',
-            'PORT': '',
-            'OPTIONS': {
-                'driver': 'ODBC Driver 17 for SQL Server',
-                'Trusted_Connection': 'yes'
-
-
-            },
-        },
+    'default': dj_database_url.config(
+        default='sqlite:///db.sqlite3',
+        conn_max_age=600
+    )
     }
 
 
@@ -155,10 +149,17 @@ EMAIL_HOST_PASSWORD = 'tu-contraseña-de-aplicacion' # Contraseña segura de Goo
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 # La URL pública para el navegador (siempre debe terminar en /)
-MEDIA_URL = '/media/'
+MEDIA_URL = '/Media/'
 
-# La ruta física real en tu computadora (Asegúrate de usar barras normales /)
-MEDIA_ROOT = 'C:/Comprobantes_Muebleria'
+# Configuramos la ruta física en el servidor
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    # En la nube, usamos una ruta absoluta que conectaremos al Volumen
+    MEDIA_ROOT = '/app/media/'
+else:
+    # En tu computadora local, se sigue guardando en la carpeta de tu proyecto
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'Media')
+
+
 
 STATIC_URL = 'static/'
 
