@@ -66,6 +66,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -158,6 +159,21 @@ if os.environ.get('RAILWAY_ENVIRONMENT'):
 else:
     # En tu computadora local, se sigue guardando en la carpeta de tu proyecto
     MEDIA_ROOT = os.path.join(BASE_DIR, 'Media')
+
+
+# Permite que Django responda en el dominio de Railway
+ALLOWED_HOSTS = [
+    'web-production-93930.up.railway.app',
+    '.up.railway.app',
+    '127.0.0.1',
+    'localhost'
+]
+
+# Permite iniciar sesión y enviar formularios desde el dominio seguro (https)
+CSRF_TRUSTED_ORIGINS = [
+    'https://web-production-93930.up.railway.app',
+    'https://*.up.railway.app'
+]
 
 
 
