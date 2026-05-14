@@ -161,8 +161,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'tumuebleria@gmail.com'  # Tu correo
-EMAIL_HOST_PASSWORD = 'tu-contraseña-de-aplicacion' # Contraseña segura de Google
+EMAIL_HOST_USER = 'angelamuebleria29@gmail.com'  # Tu correo
+EMAIL_HOST_PASSWORD = 'cmsl pybb nmew vhun' # Contraseña segura de Google
 
 
 # Static files (CSS, JavaScript, Images)
