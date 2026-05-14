@@ -47,7 +47,7 @@ urlpatterns = [
     path('apiPedidos/', include(routerPedidos.urls)),
     path('apiProducto/', include(routerProducto.urls)),
     path('apiVarianteProducto/',include(routerVarianteProducto.urls)),
-    path('apiUsuarios',include(routerUsuario.urls)),
+    path('apiUsuarios/',include(routerUsuario.urls)),
 
 # Ruta para obtener el token (Login)
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

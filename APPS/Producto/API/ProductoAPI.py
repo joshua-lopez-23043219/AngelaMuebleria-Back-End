@@ -10,7 +10,7 @@ from APPS.Producto.models import Producto
 
 class ProductoViewsSet (ModelViewSet):
 
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
     queryset = Producto.objects.all()
     serializer_class = SerializerProducto
 
