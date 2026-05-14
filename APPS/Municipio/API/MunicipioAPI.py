@@ -10,7 +10,7 @@ from APPS.Municipio.models import Municipio
 
 class MunicipioViewsSet (ModelViewSet):
 
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
     queryset = Municipio.objects.all()
     serializer_class = SerializerMunicipio
 
