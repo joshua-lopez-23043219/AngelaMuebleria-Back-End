@@ -33,7 +33,10 @@ from APPS.Producto.API.Urls import routerProducto
 from APPS.VarianteProducto.API.Urls import routerVarianteProducto
 from Config import settings
 from Seguridad.Usuarios.API.Urls import routerUsuario
+from Seguridad.Usuarios.API.AuthSerializer import MyTokenObtainPairSerializer
 
+class MyTokenObtainPairView (TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -50,7 +53,7 @@ urlpatterns = [
     path('apiUsuarios/',include(routerUsuario.urls)),
 
 # Ruta para obtener el token (Login)
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     # Ruta para renovar el token
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
