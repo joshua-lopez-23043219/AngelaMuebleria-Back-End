@@ -32,5 +32,5 @@ def enviar_correo_activacion(sender, instance, created, **kwargs):
             mensaje,
             settings.EMAIL_HOST_USER,  # El correo de tu mueblería (configurado en settings.py)
             [instance.email],  # El correo del cliente
-            fail_silently=False,
+            fail_silently=True,
         )
