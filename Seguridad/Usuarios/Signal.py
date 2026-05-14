@@ -13,7 +13,8 @@ from .models import Usuario
 
 @receiver(post_save, sender=Usuario)
 def enviar_correo_activacion(sender, instance, created, **kwargs):
-    if created and instance.rol == 'cliente':
+    print(f"DEBUG: Signal activado para {instance.email}. Creado: {created}, Rol: {instance.rol}")
+    if created and str(instance.rol).lower() == 'cliente':
         token = default_token_generator.make_token(instance)
         uid = urlsafe_base64_encode(force_bytes(instance.pk))
         enlace_activacion = f"https://web-production-93930.up.railway.app/apiUsuarios/Usuario/activar/{uid}/{token}/"
