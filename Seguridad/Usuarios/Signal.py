@@ -21,7 +21,7 @@ def enviar_correo_activacion(sender, instance, created, **kwargs):
 
         # 3. Armamos el enlace que el cliente va a clickear
         # (Ese localhost cambiará por tu dominio real cuando subas la página a internet)
-        enlace_activacion = f"http://localhost:8000/api/usuarios/activar/{uid}/{token}/"
+        enlace_activacion = f"https://web-production-93930.up.railway.app/api/usuarios/activar/{uid}/{token}/"
 
         # 4. Redactamos y enviamos el correo
         asunto = "Confirma tu cuenta en ANGELA MUEBLERIA"
