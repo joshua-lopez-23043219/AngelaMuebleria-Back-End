@@ -30,12 +30,8 @@ class UsuarioViewsSet (ModelViewSet):
             user.is_active = True  # Activamos al usuario
             user.save()
             return Response({"message": "¡Cuenta activada con éxito! Ya puedes iniciar sesión."},
-                            status=status.HTTP_200_OK)
+             status=status.HTTP_200_OK)
 
         else:
             return Response({"error": "El enlace de activación es inválido o ha expirado."},
-
-
-            status=status.HTTP_400_BAD_REQUEST)
-
-
+             status=status.HTTP_400_BAD_REQUEST)
