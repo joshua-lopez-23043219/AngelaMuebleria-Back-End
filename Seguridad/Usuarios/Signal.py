@@ -17,7 +17,7 @@ def enviar_correo_activacion(sender, instance, created, **kwargs):
     if created and str(instance.rol).lower() == 'cliente':
         token = default_token_generator.make_token(instance)
         uid = urlsafe_base64_encode(force_bytes(instance.pk))
-        enlace_activacion = f"https://web-production-93930.up.railway.app/apiUsuarios/Usuario/activar/{uid}/{token}/"
+        enlace_activacion = f"https://api.angelamuebleria.business/apiUsuarios/Usuario/activar/{uid}/{token}/"
         asunto = "Confirma tu cuenta en ANGELA MUEBLERIA"
         mensaje = f"Hola {instance.username},\n\nGracias por registrarte. Para activar tu cuenta, haz clic en el siguiente enlace:\n\n{enlace_activacion}"
         # --- CAMBIO AQUÍ: Función interna para el hilo ---
