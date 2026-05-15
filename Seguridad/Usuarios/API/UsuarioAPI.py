@@ -25,13 +25,16 @@ class UsuarioViewsSet (ModelViewSet):
             user = Usuario.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, Usuario.DoesNotExist):
             user = None
+        from django.http import HttpResponseRedirect
+        
         # 2. Verificamos si el token es válido
         if user is not None and default_token_generator.check_token(user, token):
             user.is_active = True  # Activamos al usuario
+            user.email_verificado = True
             user.save()
-            return Response({"message": "¡Cuenta activada con éxito! Ya puedes iniciar sesión."},
-             status=status.HTTP_200_OK)
+            # Redirigimos al frontend con un mensaje de éxito
+            return HttpResponseRedirect("https://angelamuebleria.business/?activated=true")
 
         else:
-            return Response({"error": "El enlace de activación es inválido o ha expirado."},
-             status=status.HTTP_400_BAD_REQUEST)
+            # Redirigimos al frontend con un mensaje de error
+            return HttpResponseRedirect("https://angelamuebleria.business/?activated=false")
