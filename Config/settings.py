@@ -191,8 +191,9 @@ else:
 ALLOWED_HOSTS = [
     'web-production-93930.up.railway.app',
     '.up.railway.app',
-    "https://angelamuebleria.business",
-    "https://www.angelamuebleria.business",
+    'angelamuebleria.business',          # ← Sin https://
+    'www.angelamuebleria.business',      # ← Sin https://
+    'api.angelamuebleria.business',      # ← AQUI ESTÁ EL SUBDOMINIO DE TU BACKEND
     '127.0.0.1',
     'localhost'
 ]
@@ -201,7 +202,9 @@ ALLOWED_HOSTS = [
 
 # Permite iniciar sesión y enviar formularios desde el dominio seguro (https)
 CSRF_TRUSTED_ORIGINS = [
-    'https://api.angelamuebleria.business/',
+    'https://api.angelamuebleria.business',  # ← Sin el / al final
+    'https://angelamuebleria.business',      # ← Tu Frontend de Vite necesita permisos
+    'https://www.angelamuebleria.business',
     'https://*.up.railway.app'
 ]
 
