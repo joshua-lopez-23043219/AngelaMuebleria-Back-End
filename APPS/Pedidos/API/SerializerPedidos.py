@@ -48,7 +48,10 @@ class SerializerPedidos(serializers.ModelSerializer):
         # Recalcular totales por seguridad (evitar manipulación en el frontend)
         subtotal = 0
         for item in items:
-            subtotal += item.get('price', 0) * item.get('quantity', 1)
+            from decimal import Decimal
+            price = Decimal(str(item.get('price', 0)))
+            qty = int(item.get('quantity', 1))
+            subtotal += price * qty
             
         descuento_total = 0  # Aquí se calcularía real basado en discount_code si tuviéramos tabla de cupones
         costo_envio = 0
@@ -68,7 +71,7 @@ class SerializerPedidos(serializers.ModelSerializer):
         # 2. Crear los Detalles y descontar Stock
         for item in items:
             producto = Producto.objects.get(id=item['id'])
-            cantidad = item['quantity']
+            cantidad = int(item.get('quantity', 1))
             
             # Reducir stock (Opcional, según lo que me confirmen, pero lo dejamos como valor por defecto seguro)
             if producto.stock >= cantidad:
