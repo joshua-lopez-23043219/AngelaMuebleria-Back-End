@@ -32,6 +32,7 @@ from APPS.Pedidos.API.Urls import routerPedidos
 from APPS.Producto.API.Urls import routerProducto
 from APPS.VarianteProducto.API.Urls import routerVarianteProducto
 from Config import settings
+from Config.views import upload_file
 from Seguridad.Usuarios.API.Urls import routerUsuario
 from Seguridad.Usuarios.API.AuthSerializer import MyTokenObtainPairSerializer
 
@@ -52,11 +53,19 @@ urlpatterns = [
     path('apiVarianteProducto/',include(routerVarianteProducto.urls)),
     path('apiUsuarios/',include(routerUsuario.urls)),
 
-# Ruta para obtener el token (Login)
+    # Endpoint de subida genérica para comprobantes
+    path('api/upload/', upload_file, name='upload_file'),
+
+    # Ruta para obtener el token (Login)
     path('api/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     # Ruta para renovar el token
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
+
+# Servir archivos media
+if settings.DEBUG:
+    from django.conf.urls.static import static
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG or os.environ.get('RAILWAY_ENVIRONMENT'):
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
