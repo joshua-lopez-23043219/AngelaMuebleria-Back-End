@@ -22,7 +22,7 @@ class SerializerPedidos(serializers.ModelSerializer):
             'items', 'payment_method', 'payment_receipt_url', 'paypal_order_id',
             'shipping_type', 'shipping_address', 'discount_code'
         ]
-        read_only_fields = ['id', 'estado', 'creado_en']
+        read_only_fields = ['id', 'estado', 'creado_en', 'subtotal', 'descuento_total', 'costo_envio', 'total']
 
     @transaction.atomic
     def create(self, validated_data):
