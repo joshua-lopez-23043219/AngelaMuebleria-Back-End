@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'corsheaders',
     'rest_framework_simplejwt',
+    'anymail',
 
 
 
@@ -156,14 +157,19 @@ USE_I18N = True
 USE_TZ = True
 
 
-#Zona para el envio de correos
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465
-EMAIL_USE_TLS = False
-EMAIL_HOST_USER = 'angelamuebleria29@gmail.com'  # Tu correo
-EMAIL_HOST_PASSWORD = 'cmsl pybb nmew vhun' # Contraseña segura de Google
-EMAIL_USE_SSL = True
+# Configuración de Anymail para Resend
+ANYMAIL = {
+    "RESEND_API_KEY": os.environ.get("RESEND_API_KEY"),
+}
+
+# El motor de envío ahora es Anymail
+EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+
+# Tu remitente de prueba (el que te da Resend por defecto)
+DEFAULT_FROM_EMAIL = "onboarding@resend.dev"
+
+
+
 
 
 # Static files (CSS, JavaScript, Images)
@@ -185,6 +191,8 @@ else:
 ALLOWED_HOSTS = [
     'web-production-93930.up.railway.app',
     '.up.railway.app',
+    "https://angelamuebleria.business",
+    "https://www.angelamuebleria.business",
     '127.0.0.1',
     'localhost'
 ]
@@ -193,7 +201,7 @@ ALLOWED_HOSTS = [
 
 # Permite iniciar sesión y enviar formularios desde el dominio seguro (https)
 CSRF_TRUSTED_ORIGINS = [
-    'https://web-production-93930.up.railway.app',
+    'https://api.angelamuebleria.business/',
     'https://*.up.railway.app'
 ]
 
