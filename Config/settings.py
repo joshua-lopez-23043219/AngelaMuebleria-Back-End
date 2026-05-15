@@ -166,7 +166,7 @@ ANYMAIL = {
 EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
 
 # Tu remitente de prueba o en producción (Configúralo en Railway)
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "onboarding@resend.dev")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Mueblería Ángela <ventas@angelamuebleria.business>")
 
 
 
