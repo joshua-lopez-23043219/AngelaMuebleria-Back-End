@@ -17,5 +17,12 @@ class Usuario(AbstractUser):
     email_verificado = models.BooleanField(default=False,
                                            help_text="Se marca como True cuando el cliente hace clic en el enlace del correo")
 
+    def save(self, *args, **kwargs):
+        # Magia: Si alguien es creado como superusuario por consola, asignarle el rol de admin automáticamente
+        if self.is_superuser and self.rol != 'admin':
+            self.rol = 'admin'
+            self.email_verificado = True # Un admin no necesita verificar su correo
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.username} - {self.rol}"
