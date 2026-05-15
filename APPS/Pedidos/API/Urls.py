@@ -4,4 +4,4 @@ from APPS.Pedidos.API.PedidosAPI import PedidosViewsSet
 
 routerPedidos = DefaultRouter()
 
-routerPedidos.register(r'Pedidos', PedidosViewsSet ,basename='Pedidos')
+routerPedidos.register(r'Pedido', PedidosViewsSet ,basename='Pedidos')

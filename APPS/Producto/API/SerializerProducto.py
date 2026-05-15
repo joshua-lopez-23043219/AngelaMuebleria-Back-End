@@ -10,6 +10,7 @@ class SerializerProducto(serializers.ModelSerializer):
     image_url = serializers.CharField(write_only=True, required=False, allow_null=True)
     category = serializers.CharField(write_only=True, required=False, allow_null=True)
     description = serializers.CharField(source='descripcion', required=False, allow_blank=True, allow_null=True)
+    wood_type = serializers.CharField(source='materiales', required=False, allow_blank=True, allow_null=True)
     
     # Campo solo lectura para mostrar URL real
     image_url_read = serializers.SerializerMethodField(source='get_image_url_read')
@@ -17,7 +18,7 @@ class SerializerProducto(serializers.ModelSerializer):
     
     class Meta:
         model = Producto
-        fields = ['id', 'name', 'price', 'description', 'image_url', 'image_url_read', 'category', 'category_read', 'stock', 'esta_activo']
+        fields = ['id', 'name', 'price', 'description', 'wood_type', 'image_url', 'image_url_read', 'category', 'category_read', 'stock', 'esta_activo']
 
     def get_image_url_read(self, obj):
         request = self.context.get('request')
