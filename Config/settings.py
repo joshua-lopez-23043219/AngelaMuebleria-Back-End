@@ -159,7 +159,7 @@ USE_TZ = True
 #Zona para el envio de correos
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 565
+EMAIL_PORT = 465
 EMAIL_USE_TLS = False
 EMAIL_HOST_USER = 'angelamuebleria29@gmail.com'  # Tu correo
 EMAIL_HOST_PASSWORD = 'cmsl pybb nmew vhun' # Contraseña segura de Google
