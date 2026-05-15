@@ -26,7 +26,7 @@ def enviar_correo_activacion(sender, instance, created, **kwargs):
                 send_mail(
                     asunto,
                     mensaje,
-                    settings.EMAIL_HOST_USER,
+                    settings.DEFAULT_FROM_EMAIL,
                     [instance.email],
                     fail_silently=False,
                 )
