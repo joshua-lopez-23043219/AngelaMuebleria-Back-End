@@ -30,6 +30,7 @@ from APPS.Municipio.API.Urls import routerMunicipio
 from APPS.Pago.API.Urls import routerPago
 from APPS.Pedidos.API.Urls import routerPedidos
 from APPS.Producto.API.Urls import routerProducto
+from APPS.Suscripcion.API.Urls import routerSuscripcion
 from APPS.VarianteProducto.API.Urls import routerVarianteProducto
 from Config import settings
 from Config.views import upload_file
@@ -50,6 +51,7 @@ urlpatterns = [
     path('apiPago/', include(routerPago.urls)),
     path('apiPedidos/', include(routerPedidos.urls)),
     path('apiProducto/', include(routerProducto.urls)),
+    path('apiSuscripcion/', include(routerSuscripcion.urls)),
     path('apiVarianteProducto/',include(routerVarianteProducto.urls)),
     path('apiUsuarios/',include(routerUsuario.urls)),
 
