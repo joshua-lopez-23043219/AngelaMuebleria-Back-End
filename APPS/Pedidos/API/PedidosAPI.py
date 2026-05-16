@@ -22,24 +22,8 @@ class PedidosViewsSet(ModelViewSet):
     @action(detail=False, methods=['get'])
     def mis_pedidos(self, request):
         pedidos = self.queryset.filter(usuario=request.user)
-        # Necesitamos devolver un json amigable para el frontend
-        data = []
-        for p in pedidos:
-            data.append({
-                "id": p.id,
-                "total": p.total,
-                "status": {
-                    'pendiente': 'pending', 
-                    'en_proceso': 'processing', 
-                    'listo': 'ready', 
-                    'entregado': 'delivered', 
-                    'cancelado': 'cancelled'
-                }.get(p.estado, p.estado),
-
-                "created_at": p.creado_en.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "shipping_type": p.metodo_entrega,
-            })
-        return Response(data, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(pedidos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'])
     def get_detalles(self, request, pk=None):
