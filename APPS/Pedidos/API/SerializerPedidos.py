@@ -138,10 +138,24 @@ class SerializerPedidos(serializers.ModelSerializer):
             data['user_department'] = instance.usuario.municipio.departamento.nombre if (hasattr(instance.usuario, 'municipio') and instance.usuario.municipio) else "No registrado"
             data['user_municipality'] = instance.usuario.municipio.nombre if (hasattr(instance.usuario, 'municipio') and instance.usuario.municipio) else "No registrado"
         
-        # Shipping status (revisando pagos de delivery)
+        # Datos de Pago del Mueble
+        pago_productos = instance.pagos.filter(tipo_pago='productos').first()
+        if pago_productos:
+            data['payment_method'] = 'paypal' if pago_productos.metodo_pago == 'paypal' else 'receipt'
+            data['paypal_order_id'] = pago_productos.id_transaccion
+            data['payment_receipt_url'] = pago_productos.imagen_comprobante.url if pago_productos.imagen_comprobante else None
+        else:
+            data['payment_method'] = 'receipt'
+            data['paypal_order_id'] = None
+            data['payment_receipt_url'] = None
+
+        # Shipping status y datos de pago de delivery
         pago_delivery = instance.pagos.filter(tipo_pago='delivery').first()
         if pago_delivery:
             data['shipping_status'] = 'paid' if pago_delivery.estado == 'completado' else 'pending'
+            data['shipping_payment_method'] = 'paypal' if pago_delivery.metodo_pago == 'paypal' else 'receipt'
+            data['shipping_paypal_order_id'] = pago_delivery.id_transaccion
+            data['shipping_payment_receipt_url'] = pago_delivery.imagen_comprobante.url if pago_delivery.imagen_comprobante else None
         else:
             data['shipping_status'] = 'pending'
             
