@@ -89,8 +89,6 @@ class PedidosViewsSet(ModelViewSet):
                 pago.estado = 'completado'
                 pago.save()
         
-        return Response({
-            "message": "Estado actualizado", 
-            "new_status": nuevo_estado,
-            "db_status": estado_db
-        })
+        # Devolver el objeto serializado actualizado
+        serializer = self.get_serializer(pedido)
+        return Response(serializer.data)
