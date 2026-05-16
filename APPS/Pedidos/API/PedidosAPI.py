@@ -53,10 +53,37 @@ class PedidosViewsSet(ModelViewSet):
     def status(self, request, pk=None):
         if not (hasattr(request.user, 'rol') and request.user.rol == 'admin'):
             return Response({"error": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
+            
         pedido = self.get_object()
         nuevo_estado = request.data.get('status')
-        if nuevo_estado:
-            pedido.estado = nuevo_estado
-            pedido.save()
-            return Response({"message": "Estado actualizado"})
-        return Response({"error": "Estado no proporcionado"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not nuevo_estado:
+            return Response({"error": "Estado no proporcionado"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Mapeo de estados del frontend a estados del modelo (Español)
+        reverse_map = {
+            'pending': 'pendiente',
+            'payment_review': 'payment_review',
+            'payment_validated': 'payment_validated',
+            'processing': 'en_proceso',
+            'ready': 'listo',
+            'delivered': 'entregado',
+            'cancelled': 'cancelado'
+        }
+        
+        estado_db = reverse_map.get(nuevo_estado, nuevo_estado)
+        pedido.estado = estado_db
+        pedido.save()
+        
+        # Lógica extra: Si se valida el pago, actualizar el registro de Pago a 'completado'
+        if nuevo_estado == 'payment_validated':
+            pago = pedido.pagos.filter(tipo_pago='productos').first()
+            if pago:
+                pago.estado = 'completado'
+                pago.save()
+        
+        return Response({
+            "message": "Estado actualizado", 
+            "new_status": nuevo_estado,
+            "db_status": estado_db
+        })
