@@ -20,6 +20,25 @@ class PedidosViewsSet(ModelViewSet):
         return self.queryset.filter(usuario=self.request.user)
 
     @action(detail=False, methods=['get'])
+    def stats(self, request):
+        if not (hasattr(request.user, 'rol') and request.user.rol == 'admin'):
+            return Response({"error": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
+            
+        from APPS.Producto.models import Producto
+        
+        # Ingresos Totales (Solo de productos por ahora)
+        from django.db.models import Sum
+        revenue = Pedido.objects.filter(estado__in=['en_proceso', 'listo', 'entregado']).aggregate(total=Sum('total'))['total'] or 0
+        
+        data = {
+            "revenue": float(revenue),
+            "orders": Pedido.objects.exclude(estado='cancelado').count(),
+            "products": Producto.objects.count(),
+            "lowStock": Producto.objects.filter(stock__lt=5).count()
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'])
     def mis_pedidos(self, request):
         pedidos = self.queryset.filter(usuario=request.user)
         serializer = self.get_serializer(pedidos, many=True)
