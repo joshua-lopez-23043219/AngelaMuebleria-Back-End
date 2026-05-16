@@ -28,8 +28,8 @@ class PedidosViewsSet(ModelViewSet):
             data.append({
                 "id": p.id,
                 "total": p.total,
-                "status": p.estado,
-                "date": p.creado_en.strftime("%Y-%m-%d"),
+                "status": {'pendiente': 'pending', 'en_proceso': 'processing', 'listo': 'processing', 'entregado': 'delivered', 'cancelado': 'cancelled'}.get(p.estado, p.estado),
+                "created_at": p.creado_en.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "shipping_type": p.metodo_entrega,
             })
         return Response(data, status=status.HTTP_200_OK)

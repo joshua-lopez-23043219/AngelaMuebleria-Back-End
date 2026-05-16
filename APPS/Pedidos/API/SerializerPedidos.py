@@ -105,3 +105,44 @@ class SerializerPedidos(serializers.ModelSerializer):
         )
 
         return pedido
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        
+        # Mapeo de campos esperados por el frontend
+        data['created_at'] = instance.creado_en.strftime("%Y-%m-%dT%H:%M:%SZ") if instance.creado_en else None
+        
+        # Mapeo de estado para que coincida con el frontend
+        estado_map = {
+            'pendiente': 'pending',
+            'en_proceso': 'processing',
+            'listo': 'processing',
+            'entregado': 'delivered',
+            'cancelado': 'cancelled',
+            'pending': 'pending',
+            'payment_review': 'payment_review',
+            'payment_validated': 'payment_validated',
+            'processing': 'processing',
+            'delivered': 'delivered',
+            'cancelled': 'cancelled',
+        }
+        data['status'] = estado_map.get(instance.estado, 'pending')
+        
+        data['shipping_type'] = 'delivery' if instance.metodo_entrega == 'domicilio' else 'pickup'
+        data['shipping_cost'] = float(instance.costo_envio) if instance.costo_envio else 0
+        
+        # Datos del usuario
+        if instance.usuario:
+            data['user_name'] = f"{instance.usuario.first_name} {instance.usuario.last_name}".strip() or instance.usuario.username
+            data['user_phone'] = instance.usuario.numero_telefono or "No registrado"
+            data['user_department'] = instance.usuario.municipio.departamento.nombre if (hasattr(instance.usuario, 'municipio') and instance.usuario.municipio) else "No registrado"
+            data['user_municipality'] = instance.usuario.municipio.nombre if (hasattr(instance.usuario, 'municipio') and instance.usuario.municipio) else "No registrado"
+        
+        # Shipping status (revisando pagos de delivery)
+        pago_delivery = instance.pagos.filter(tipo_pago='delivery').first()
+        if pago_delivery:
+            data['shipping_status'] = 'paid' if pago_delivery.estado == 'completado' else 'pending'
+        else:
+            data['shipping_status'] = 'pending'
+            
+        return data
