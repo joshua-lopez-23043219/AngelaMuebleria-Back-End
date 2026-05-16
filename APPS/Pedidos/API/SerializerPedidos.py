@@ -116,13 +116,14 @@ class SerializerPedidos(serializers.ModelSerializer):
         estado_map = {
             'pendiente': 'pending',
             'en_proceso': 'processing',
-            'listo': 'processing',
+            'listo': 'ready',
             'entregado': 'delivered',
             'cancelado': 'cancelled',
             'pending': 'pending',
             'payment_review': 'payment_review',
             'payment_validated': 'payment_validated',
             'processing': 'processing',
+            'ready': 'ready',
             'delivered': 'delivered',
             'cancelled': 'cancelled',
         }
