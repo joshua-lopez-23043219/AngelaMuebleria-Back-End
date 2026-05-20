@@ -53,8 +53,70 @@ class SerializerPedidos(serializers.ModelSerializer):
             qty = int(item.get('quantity', 1))
             subtotal += price * qty
             
-        descuento_total = 0  # Aquí se calcularía real basado en discount_code si tuviéramos tabla de cupones
-        costo_envio = 0
+        # Calcular descuentos de combos promocionales configurados
+        from APPS.ComboPedidos.models import ReglaCombo, ComboPedido
+        reglas = ReglaCombo.objects.filter(activo=True)
+        descuento_combos = Decimal('0.00')
+        combos_a_crear = []
+
+        if reglas.exists():
+            # Cargar los productos reales para validar de forma segura
+            items_productos = []
+            for item in items:
+                try:
+                    prod = Producto.objects.get(id=item['id'])
+                    items_productos.append({
+                        'producto': prod,
+                        'cantidad': int(item.get('quantity', 1)),
+                        'precio': prod.precio_base
+                    })
+                except Producto.DoesNotExist:
+                    continue
+
+            for regla in reglas:
+                # Contar cuántos items cumplen el requerimiento
+                cantidad_cumple = 0
+                for ip in items_productos:
+                    prod = ip['producto']
+                    cumple_tipo = (not regla.tipo_requerido) or (prod.tipo_producto == regla.tipo_requerido)
+                    cumple_cat = (not regla.categoria_requerida) or (prod.categoria_id == regla.categoria_requerida_id)
+                    if cumple_tipo and cumple_cat:
+                        cantidad_cumple += ip['cantidad']
+
+                veces_activado = cantidad_cumple // regla.cantidad_requerida
+                if veces_activado > 0:
+                    # Buscar productos de regalo elegibles en el carrito
+                    candidatos_regalo = []
+                    for ip in items_productos:
+                        prod = ip['producto']
+                        cumple_tipo = (not regla.tipo_regalo) or (prod.tipo_producto == regla.tipo_regalo)
+                        cumple_cat = (not regla.categoria_regalo) or (prod.categoria_id == regla.categoria_regalo_id)
+                        if cumple_tipo and cumple_cat:
+                            candidatos_regalo.append(ip)
+
+                    # Ordenar por precio de menor a mayor
+                    candidatos_regalo = sorted(candidatos_regalo, key=lambda x: x['precio'])
+
+                    regalos_permitidos = veces_activado * regla.cantidad_regalo
+                    regalos_dados = 0
+
+                    for cand in candidatos_regalo:
+                        if regalos_dados >= regalos_permitidos:
+                            break
+                        disponibles = cand['cantidad']
+                        por_descontar = min(disponibles, regalos_permitidos - regalos_dados)
+                        
+                        descuento_combos += cand['precio'] * por_descontar
+                        regalos_dados += por_descontar
+
+                    if regalos_dados > 0:
+                        combos_a_crear.append({
+                            'nombre': regla.nombre,
+                            'descuento_aplicado': cand['precio'] * regalos_dados
+                        })
+
+        descuento_total = descuento_combos
+        costo_envio = Decimal('0.00')
         total = (subtotal - descuento_total) + costo_envio
 
         # 1. Crear el Pedido Principal
@@ -67,6 +129,14 @@ class SerializerPedidos(serializers.ModelSerializer):
             total=total,
             estado='pendiente'
         )
+
+        # Registrar los combos aplicados en la BD
+        for cb in combos_a_crear:
+            ComboPedido.objects.create(
+                pedido=pedido,
+                nombre=cb['nombre'],
+                descuento_aplicado=cb['descuento_aplicado']
+            )
 
         # 2. Crear los Detalles y descontar Stock
         for item in items:

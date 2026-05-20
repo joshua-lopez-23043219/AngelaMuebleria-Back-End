@@ -35,7 +35,7 @@ class PedidosViewsSet(ModelViewSet):
         
         data = {
             "revenue": float(revenue),
-            "orders": Pedido.objects.count(),
+            "orders": Pedido.objects.exclude(estado='cancelado').count(),
             "products": Producto.objects.count(),
             "lowStock": Producto.objects.filter(stock__lt=5).count()
         }
@@ -98,3 +98,39 @@ class PedidosViewsSet(ModelViewSet):
         # Devolver el objeto serializado actualizado
         serializer = self.get_serializer(pedido)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def cancelar(self, request, pk=None):
+        pedido = self.get_object()
+        
+        # Verificar permisos: El pedido pertenece al usuario o es administrador
+        is_admin = request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol == 'admin')
+        if pedido.usuario != request.user and not is_admin:
+            return Response({"error": "No tienes permiso para cancelar este pedido"}, status=status.HTTP_403_FORBIDDEN)
+            
+        if pedido.estado == 'cancelado':
+            return Response({"error": "El pedido ya se encuentra cancelado"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Si ya fue entregado, no se permite la cancelación
+        if pedido.estado == 'entregado':
+            return Response({"error": "No se puede cancelar un pedido entregado"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from django.db import transaction
+        with transaction.atomic():
+            pedido.estado = 'cancelado'
+            pedido.save()
+            
+            # Devolver stock a los productos
+            for detalle in pedido.detalles.all():
+                producto = detalle.producto
+                producto.stock += detalle.cantidad
+                producto.save()
+                
+            # Reembolsar pagos si aplica
+            for pago in pedido.pagos.all():
+                if pago.estado == 'completado' or pago.estado == 'pendiente':
+                    pago.estado = 'reembolsado'
+                    pago.save()
+                    
+        serializer = self.get_serializer(pedido)
+        return Response(serializer.data, status=status.HTTP_200_OK)
