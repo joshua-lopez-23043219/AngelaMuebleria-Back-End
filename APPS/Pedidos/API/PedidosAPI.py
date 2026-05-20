@@ -14,14 +14,17 @@ class PedidosViewsSet(ModelViewSet):
     serializer_class = SerializerPedidos
 
     def get_queryset(self):
-        # Si es admin, ve todos. Si es cliente, solo los suyos.
-        if hasattr(self.request.user, 'rol') and self.request.user.rol == 'admin':
-            return self.queryset
-        return self.queryset.filter(usuario=self.request.user)
+        user = self.request.user
+        is_admin = user.is_superuser or (hasattr(user, 'rol') and user.rol == 'admin')
+        if is_admin:
+            return Pedido.objects.all().order_by('-creado_en')
+        return Pedido.objects.filter(usuario=user).order_by('-creado_en')
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
-        if not (hasattr(request.user, 'rol') and request.user.rol == 'admin'):
+        user = request.user
+        is_admin = user.is_superuser or (hasattr(user, 'rol') and user.rol == 'admin')
+        if not is_admin:
             return Response({"error": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
             
         from APPS.Producto.models import Producto
@@ -32,7 +35,7 @@ class PedidosViewsSet(ModelViewSet):
         
         data = {
             "revenue": float(revenue),
-            "orders": Pedido.objects.exclude(estado='cancelado').count(),
+            "orders": Pedido.objects.count(),
             "products": Producto.objects.count(),
             "lowStock": Producto.objects.filter(stock__lt=5).count()
         }
