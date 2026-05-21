@@ -7,21 +7,29 @@ class SerializerProducto(serializers.ModelSerializer):
     # Campos para lectura/escritura amigables con el frontend
     name = serializers.CharField(source='nombre')
     price = serializers.DecimalField(source='precio_base', max_digits=10, decimal_places=2)
-    image_url = serializers.CharField(write_only=True, required=False, allow_null=True)
-    category = serializers.CharField(write_only=True, required=False, allow_null=True)
+    image_url = serializers.CharField(write_only=True, required=False, allow_null=True, allow_blank=True)
+    category = serializers.CharField(write_only=True, required=False, allow_null=True, allow_blank=True)
     description = serializers.CharField(source='descripcion', required=False, allow_blank=True, allow_null=True)
     wood_type = serializers.CharField(source='materiales', required=False, allow_blank=True, allow_null=True)
     type = serializers.CharField(source='tipo_producto', required=False, default='otro')
     code = serializers.CharField(source='codigo_producto', read_only=True)
     
-    # Campo solo lectura para mostrar URL real
+    # Campo para almacenar modelo 3D (.glb / .gltf)
+    model_3d_url = serializers.CharField(write_only=True, required=False, allow_null=True, allow_blank=True)
+    
+    # Campos solo lectura para mostrar URL real
     image_url_read = serializers.SerializerMethodField(source='get_image_url_read')
     category_read = serializers.SerializerMethodField(source='get_category_read')
+    model_3d_url_read = serializers.SerializerMethodField(source='get_model_3d_url_read')
     
     class Meta:
         model = Producto
-        fields = ['id', 'name', 'price', 'description', 'wood_type', 'image_url', 'image_url_read', 'category', 'category_read', 'stock', 'esta_activo', 'type', 'code']
-
+        fields = [
+            'id', 'name', 'price', 'description', 'wood_type', 
+            'image_url', 'image_url_read', 'category', 'category_read', 
+            'stock', 'esta_activo', 'type', 'code', 
+            'model_3d_url', 'model_3d_url_read'
+        ]
 
     def get_image_url_read(self, obj):
         request = self.context.get('request')
@@ -29,6 +37,14 @@ class SerializerProducto(serializers.ModelSerializer):
             if request is not None:
                 return request.build_absolute_uri(obj.url_miniatura.url)
             return obj.url_miniatura.url
+        return None
+
+    def get_model_3d_url_read(self, obj):
+        request = self.context.get('request')
+        if obj.url_modelo_3d:
+            if request is not None:
+                return request.build_absolute_uri(obj.url_modelo_3d.url)
+            return obj.url_modelo_3d.url
         return None
 
     def get_category_read(self, obj):
@@ -46,6 +62,12 @@ class SerializerProducto(serializers.ModelSerializer):
             relative_path = image_url.split('/media/')[-1] if '/media/' in image_url else image_url
             validated_data['url_miniatura'] = relative_path
 
+        # Manejo de modelo 3D
+        model_3d_url = validated_data.pop('model_3d_url', None)
+        if model_3d_url:
+            relative_path = model_3d_url.split('/media/')[-1] if '/media/' in model_3d_url else model_3d_url
+            validated_data['url_modelo_3d'] = relative_path
+
         # Manejo de categoría
         category_name = validated_data.pop('category', None)
         if category_name:
@@ -60,6 +82,15 @@ class SerializerProducto(serializers.ModelSerializer):
             relative_path = image_url.split('/media/')[-1] if '/media/' in image_url else image_url
             instance.url_miniatura = relative_path
 
+        # Manejo de modelo 3D (soporta borrar modelo enviando string vacío o nulo)
+        if 'model_3d_url' in validated_data:
+            model_3d_url = validated_data.pop('model_3d_url')
+            if model_3d_url:
+                relative_path = model_3d_url.split('/media/')[-1] if '/media/' in model_3d_url else model_3d_url
+                instance.url_modelo_3d = relative_path
+            else:
+                instance.url_modelo_3d = None
+
         category_name = validated_data.pop('category', None)
         if category_name:
             cat, created = Categoria.objects.get_or_create(nombre=category_name)
@@ -72,4 +103,5 @@ class SerializerProducto(serializers.ModelSerializer):
         data = super().to_representation(instance)
         data['image_url'] = data.pop('image_url_read')
         data['category'] = data.pop('category_read')
+        data['model_3d_url'] = data.pop('model_3d_url_read')
         return data
