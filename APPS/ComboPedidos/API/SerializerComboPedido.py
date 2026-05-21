@@ -1,4 +1,3 @@
-from django.db import connection
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 
@@ -12,11 +11,9 @@ class SerializerComboPedido (ModelSerializer):
 
 
 class SerializerReglaCombo(ModelSerializer):
-    categoria_requerida_nombre = serializers.ReadOnlyField(source='categoria_requerida.nombre')
-    categoria_regalo_nombre = serializers.ReadOnlyField(source='categoria_regalo.nombre')
+    producto_requerido_nombre = serializers.ReadOnlyField(source='producto_requerido.nombre')
+    producto_asociado_nombre = serializers.ReadOnlyField(source='producto_asociado.nombre')
 
     class Meta:
         model = ReglaCombo
         fields = '__all__'
-
-
