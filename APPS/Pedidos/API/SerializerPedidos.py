@@ -73,47 +73,128 @@ class SerializerPedidos(serializers.ModelSerializer):
                 except Producto.DoesNotExist:
                     continue
 
+            # Copia de cantidades para simular asignaciones de combos y evitar doble conteo
+            cantidades_disponibles = { ip['producto'].id: ip['cantidad'] for ip in items_productos }
+
             for regla in reglas:
-                # Contar cuántos items cumplen el requerimiento
-                cantidad_cumple = 0
+                # Determinar cuántas veces se puede activar el combo.
+                # Cada activación requiere:
+                # - regla.cantidad_requerida de items del grupo requerido
+                # - regla.cantidad_regalo de items del grupo de regalo
+                
+                total_req_disponibles = 0
                 for ip in items_productos:
                     prod = ip['producto']
+                    qty = cantidades_disponibles.get(prod.id, 0)
+                    if qty <= 0:
+                        continue
                     cumple_tipo = (not regla.tipo_requerido) or (prod.tipo_producto == regla.tipo_requerido)
                     cumple_cat = (not regla.categoria_requerida) or (prod.categoria_id == regla.categoria_requerida_id)
                     if cumple_tipo and cumple_cat:
-                        cantidad_cumple += ip['cantidad']
+                        total_req_disponibles += qty
+                
+                veces_req = total_req_disponibles // regla.cantidad_requerida
+                if veces_req <= 0:
+                    continue
 
-                veces_activado = cantidad_cumple // regla.cantidad_requerida
-                if veces_activado > 0:
-                    # Buscar productos de regalo elegibles en el carrito
-                    candidatos_regalo = []
+                veces_activado = 0
+                descuento_regla_total = Decimal('0.00')
+
+                for _ in range(veces_req):
+                    # Intentar consumir los requeridos
+                    req_consumidos = []
+                    req_disponibles_sorted = []
                     for ip in items_productos:
                         prod = ip['producto']
-                        cumple_tipo = (not regla.tipo_regalo) or (prod.tipo_producto == regla.tipo_regalo)
-                        cumple_cat = (not regla.categoria_regalo) or (prod.categoria_id == regla.categoria_regalo_id)
-                        if cumple_tipo and cumple_cat:
-                            candidatos_regalo.append(ip)
-
-                    # Ordenar por precio de menor a mayor
-                    candidatos_regalo = sorted(candidatos_regalo, key=lambda x: x['precio'])
-
-                    regalos_permitidos = veces_activado * regla.cantidad_regalo
-                    regalos_dados = 0
-
-                    for cand in candidatos_regalo:
-                        if regalos_dados >= regalos_permitidos:
+                        qty = cantidades_disponibles.get(prod.id, 0)
+                        if qty > 0:
+                            cumple_tipo = (not regla.tipo_requerido) or (prod.tipo_producto == regla.tipo_requerido)
+                            cumple_cat = (not regla.categoria_requerida) or (prod.categoria_id == regla.categoria_requerida_id)
+                            if cumple_tipo and cumple_cat:
+                                req_disponibles_sorted.append({
+                                    'prod_id': prod.id,
+                                    'precio': ip['precio'],
+                                    'qty_available': qty
+                                })
+                    
+                    req_disponibles_sorted = sorted(req_disponibles_sorted, key=lambda x: x['precio'])
+                    
+                    acumulado_req = 0
+                    temp_updates = {}
+                    for item_r in req_disponibles_sorted:
+                        if acumulado_req >= regla.cantidad_requerida:
                             break
-                        disponibles = cand['cantidad']
-                        por_descontar = min(disponibles, regalos_permitidos - regalos_dados)
-                        
-                        descuento_combos += cand['precio'] * por_descontar
-                        regalos_dados += por_descontar
+                        necesita = regla.cantidad_requerida - acumulado_req
+                        toma = min(item_r['qty_available'] - temp_updates.get(item_r['prod_id'], 0), necesita)
+                        if toma > 0:
+                            temp_updates[item_r['prod_id']] = temp_updates.get(item_r['prod_id'], 0) + toma
+                            acumulado_req += toma
+                            req_consumidos.append((item_r['prod_id'], item_r['precio'], toma))
 
-                    if regalos_dados > 0:
-                        combos_a_crear.append({
-                            'nombre': regla.nombre,
-                            'descuento_aplicado': cand['precio'] * regalos_dados
-                        })
+                    if acumulado_req < regla.cantidad_requerida:
+                        break
+
+                    # Intentar consumir los regalos
+                    regalo_disponibles_sorted = []
+                    for ip in items_productos:
+                        prod = ip['producto']
+                        qty = cantidades_disponibles.get(prod.id, 0) - temp_updates.get(prod.id, 0)
+                        if qty > 0:
+                            cumple_tipo = (not regla.tipo_regalo) or (prod.tipo_producto == regla.tipo_regalo)
+                            cumple_cat = (not regla.categoria_regalo) or (prod.categoria_id == regla.categoria_regalo_id)
+                            if cumple_tipo and cumple_cat:
+                                regalo_disponibles_sorted.append({
+                                    'prod_id': prod.id,
+                                    'precio': ip['precio'],
+                                    'qty_available': qty
+                                })
+                    
+                    regalo_disponibles_sorted = sorted(regalo_disponibles_sorted, key=lambda x: x['precio'])
+                    
+                    acumulado_regalo = 0
+                    regalo_consumidos = []
+                    for item_g in regalo_disponibles_sorted:
+                        if acumulado_regalo >= regla.cantidad_regalo:
+                            break
+                        necesita = regla.cantidad_regalo - acumulado_regalo
+                        toma = min(item_g['qty_available'], necesita)
+                        if toma > 0:
+                            temp_updates[item_g['prod_id']] = temp_updates.get(item_g['prod_id'], 0) + toma
+                            acumulado_regalo += toma
+                            regalo_consumidos.append((item_g['prod_id'], item_g['precio'], toma))
+
+                    if acumulado_regalo < regla.cantidad_regalo:
+                        break
+                    
+                    # Consolidar asignación
+                    for p_id, q_used in temp_updates.items():
+                        cantidades_disponibles[p_id] -= q_used
+                    
+                    # Calcular precio normal de esta activación del combo
+                    normal_sum = Decimal('0.00')
+                    for p_id, precio, q in req_consumidos:
+                        normal_sum += precio * q
+                    for p_id, precio, q in regalo_consumidos:
+                        normal_sum += precio * q
+
+                    # Calcular descuento
+                    if regla.precio_combo and regla.precio_combo > 0:
+                        descuento_esta_vez = normal_sum - Decimal(str(regla.precio_combo))
+                    else:
+                        descuento_esta_vez = Decimal('0.00')
+                        for p_id, precio, q in regalo_consumidos:
+                            descuento_esta_vez += precio * q
+                    
+                    if descuento_esta_vez > 0:
+                        descuento_regla_total += descuento_esta_vez
+                        veces_activado += 1
+
+                if veces_activado > 0 and descuento_regla_total > 0:
+                    descuento_combos += descuento_regla_total
+                    combos_a_crear.append({
+                        'nombre': regla.nombre,
+                        'descuento_aplicado': descuento_regla_total
+                    })
 
         descuento_total = descuento_combos
         costo_envio = Decimal('0.00')

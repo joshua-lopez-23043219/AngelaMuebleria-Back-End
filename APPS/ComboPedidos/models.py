@@ -67,6 +67,13 @@ class ReglaCombo(models.Model):
     )
 
     activo = models.BooleanField(default=True)
+    precio_combo = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True, 
+        help_text="Precio fijo para el combo (si se establece, sustituye el regalo gratuito)"
+    )
     creado_en = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
