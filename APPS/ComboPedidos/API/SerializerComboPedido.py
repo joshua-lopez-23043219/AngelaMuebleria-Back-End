@@ -13,6 +13,7 @@ class SerializerComboPedido (ModelSerializer):
 class SerializerReglaCombo(ModelSerializer):
     producto_requerido_nombre = serializers.SerializerMethodField()
     producto_asociado_nombre = serializers.SerializerMethodField()
+    productos_detalle = serializers.SerializerMethodField()
 
     class Meta:
         model = ReglaCombo
@@ -27,4 +28,51 @@ class SerializerReglaCombo(ModelSerializer):
         if obj.producto_asociado:
             return obj.producto_asociado.nombre
         return "Producto no asignado"
+
+    def get_productos_detalle(self, obj):
+        import json
+        from APPS.Producto.models import Producto
+        if not obj.productos_json:
+            # Fallback a los campos antiguos para compatibilidad
+            res = []
+            if obj.producto_requerido:
+                res.append({
+                    'id': obj.producto_requerido.id,
+                    'nombre': obj.producto_requerido.nombre,
+                    'precio_base': float(obj.producto_requerido.precio_base),
+                    'url_miniatura': obj.producto_requerido.url_miniatura.url if obj.producto_requerido.url_miniatura else None,
+                    'cantidad': obj.cantidad_requerida or 1
+                })
+            if obj.producto_asociado:
+                res.append({
+                    'id': obj.producto_asociado.id,
+                    'nombre': obj.producto_asociado.nombre,
+                    'precio_base': float(obj.producto_asociado.precio_base),
+                    'url_miniatura': obj.producto_asociado.url_miniatura.url if obj.producto_asociado.url_miniatura else None,
+                    'cantidad': obj.cantidad_asociado or 1
+                })
+            return res
+            
+        try:
+            items = json.loads(obj.productos_json)
+            res = []
+            for item in items:
+                pid = item.get('producto_id') or item.get('id')
+                qty = item.get('cantidad') or item.get('quantity') or 1
+                if not pid:
+                    continue
+                try:
+                    p = Producto.objects.get(id=pid)
+                    res.append({
+                        'id': p.id,
+                        'nombre': p.nombre,
+                        'precio_base': float(p.precio_base),
+                        'url_miniatura': p.url_miniatura.url if p.url_miniatura else None,
+                        'cantidad': int(qty)
+                    })
+                except Producto.DoesNotExist:
+                    continue
+            return res
+        except Exception:
+            return []
 

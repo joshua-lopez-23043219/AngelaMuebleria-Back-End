@@ -28,6 +28,8 @@ class ReglaCombo(models.Model):
     )
     cantidad_requerida = models.PositiveIntegerField(
         default=4,
+        null=True,
+        blank=True,
         help_text="Cantidad mínima del producto requerido"
     )
 
@@ -42,7 +44,16 @@ class ReglaCombo(models.Model):
     )
     cantidad_asociado = models.PositiveIntegerField(
         default=1,
+        null=True,
+        blank=True,
         help_text="Cantidad de productos asociados"
+    )
+
+    # Nuevo campo dinámico para múltiples productos
+    productos_json = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Lista de productos en formato JSON: [{'producto_id': 1, 'cantidad': 2}, ...]"
     )
 
     activo = models.BooleanField(default=True)
@@ -57,6 +68,6 @@ class ReglaCombo(models.Model):
 
     def __str__(self):
         try:
-            return f"{self.nombre} ({self.cantidad_requerida} x {self.producto_requerido.nombre} + {self.cantidad_asociado} x {self.producto_asociado.nombre} por C$ {self.precio_combo})"
+            return f"{self.nombre} (por C$ {self.precio_combo})"
         except Exception:
             return f"{self.nombre}"

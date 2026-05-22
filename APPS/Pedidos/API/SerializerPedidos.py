@@ -77,44 +77,78 @@ class SerializerPedidos(serializers.ModelSerializer):
             cantidades_disponibles = { ip['producto'].id: ip['cantidad'] for ip in items_productos }
 
             for regla in reglas:
-                prod_req_id = regla.producto_requerido_id
-                prod_aso_id = regla.producto_asociado_id
+                import json
+                items_combos = []
+                if regla.productos_json:
+                    try:
+                        items_combos = json.loads(regla.productos_json)
+                    except Exception:
+                        items_combos = []
                 
-                # Obtener los precios unitarios desde la orden
-                precio_req = None
-                precio_aso = None
-                for ip in items_productos:
-                    if ip['producto'].id == prod_req_id:
-                        precio_req = ip['precio']
-                    if ip['producto'].id == prod_aso_id:
-                        precio_aso = ip['precio']
-                        
-                if precio_req is None or precio_aso is None:
+                if not items_combos:
+                    # Fallback para compatibilidad
+                    if regla.producto_requerido_id and regla.cantidad_requerida:
+                        items_combos.append({
+                            'producto_id': regla.producto_requerido_id,
+                            'cantidad': regla.cantidad_requerida
+                        })
+                    if regla.producto_asociado_id and regla.cantidad_asociado:
+                        items_combos.append({
+                            'producto_id': regla.producto_asociado_id,
+                            'cantidad': regla.cantidad_asociado
+                        })
+
+                if not items_combos:
                     continue
-                    
-                qty_req = cantidades_disponibles.get(prod_req_id, 0)
-                qty_aso = cantidades_disponibles.get(prod_aso_id, 0)
-                
-                if prod_req_id == prod_aso_id:
-                    needed_per_activation = regla.cantidad_requerida + regla.cantidad_asociado
-                    veces_activado = qty_req // needed_per_activation
-                else:
-                    veces_activado = min(qty_req // regla.cantidad_requerida, qty_aso // regla.cantidad_asociado)
-                    
-                if veces_activado > 0:
-                    # Disminuir cantidades disponibles
-                    if prod_req_id == prod_aso_id:
-                        cantidades_disponibles[prod_req_id] -= veces_activado * (regla.cantidad_requerida + regla.cantidad_asociado)
+
+                # Agrupar requerimientos por ID de producto
+                grouped_reqs = {}
+                for item in items_combos:
+                    pid = int(item.get('producto_id') or item.get('id', 0))
+                    qty = int(item.get('cantidad') or item.get('quantity', 0))
+                    if pid > 0 and qty > 0:
+                        grouped_reqs[pid] = grouped_reqs.get(pid, 0) + qty
+
+                if not grouped_reqs:
+                    continue
+
+                # Verificar si todos los productos del combo están presentes y determinar las activaciones posibles
+                veces_activado = None
+                precios_productos = {}
+                for pid, needed in grouped_reqs.items():
+                    # Obtener el precio unitario del carrito
+                    precio_u = None
+                    for ip in items_productos:
+                        if ip['producto'].id == pid:
+                            precio_u = ip['precio']
+                            break
+                    if precio_u is None:
+                        # Falta este producto en el carrito, no se puede activar
+                        veces_activado = 0
+                        break
+                    precios_productos[pid] = precio_u
+
+                    qty_disponible = cantidades_disponibles.get(pid, 0)
+                    posible = qty_disponible // needed
+                    if veces_activado is None:
+                        veces_activado = posible
                     else:
-                        cantidades_disponibles[prod_req_id] -= veces_activado * regla.cantidad_requerida
-                        cantidades_disponibles[prod_aso_id] -= veces_activado * regla.cantidad_asociado
-                    
+                        veces_activado = min(veces_activado, posible)
+
+                if veces_activado is not None and veces_activado > 0:
+                    # Disminuir cantidades disponibles
+                    for pid, needed in grouped_reqs.items():
+                        cantidades_disponibles[pid] -= veces_activado * needed
+
                     # Calcular descuento
-                    costo_normal = (regla.cantidad_requerida * precio_req) + (regla.cantidad_asociado * precio_aso)
+                    costo_normal = Decimal('0.00')
+                    for pid, needed in grouped_reqs.items():
+                        costo_normal += precios_productos[pid] * needed
+
                     precio_combo_dec = Decimal(str(regla.precio_combo)) if regla.precio_combo else costo_normal
                     descuento_unidad = max(Decimal('0.00'), costo_normal - precio_combo_dec)
                     descuento_total_regla = veces_activado * descuento_unidad
-                    
+
                     if descuento_total_regla > 0:
                         descuento_combos += descuento_total_regla
                         combos_a_crear.append({
