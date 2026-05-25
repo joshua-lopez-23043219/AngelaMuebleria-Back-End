@@ -21,7 +21,7 @@ class MuebleBaseViewsSet(ModelViewSet):
             admin_user = User.objects.get(username="AngelaMuebleria")
             client = APIClient()
             client.force_authenticate(user=admin_user)
-            response = client.delete('/apiPersonalizacion/MuebleBase/4/')
+            response = client.delete('/apiPersonalizacion/MuebleBase/4/', HTTP_HOST='api.angelamuebleria.business')
             status_code = response.status_code
             content = response.content.decode('utf-8', errors='ignore')
         except Exception as e:
