@@ -15,39 +15,25 @@ class MuebleBaseViewsSet(ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def debug_db(self, request):
         from django.conf import settings
-        from APPS.Personalizacion.models import MuebleBase
+        import os
         
-        # Try to create a test object
-        test_obj = None
-        create_error = None
+        media_files = []
         try:
-            test_obj = MuebleBase.objects.create(
-                name="Test Chair",
-                base_price=100.00,
-                image_url="/media/uploads/test.png",
-                wood_type="Pine"
-            )
+            media_root = settings.MEDIA_ROOT
+            if os.path.exists(media_root):
+                for root, dirs, files in os.walk(media_root):
+                    for file in files:
+                        rel_path = os.path.relpath(os.path.join(root, file), media_root)
+                        media_files.append(rel_path)
+            else:
+                media_files = f"MEDIA_ROOT path {media_root} does not exist"
         except Exception as e:
-            create_error = str(e)
+            media_files = f"Error scanning media: {str(e)}"
             
-        muebles_after_create = list(MuebleBase.objects.values())
-        
-        # Try to delete the test object
-        delete_error = None
-        if test_obj:
-            try:
-                test_obj.delete()
-            except Exception as e:
-                delete_error = str(e)
-                
-        muebles_after_delete = list(MuebleBase.objects.values())
-        
         return Response({
             "databases": settings.DATABASES,
-            "create_error": create_error,
-            "delete_error": delete_error,
-            "muebles_after_create": muebles_after_create,
-            "muebles_after_delete": muebles_after_delete,
+            "media_root": settings.MEDIA_ROOT,
+            "media_files_found": media_files
         })
 
     def create(self, request, *args, **kwargs):
