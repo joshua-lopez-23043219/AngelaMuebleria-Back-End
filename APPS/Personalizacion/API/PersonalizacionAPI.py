@@ -16,12 +16,38 @@ class MuebleBaseViewsSet(ModelViewSet):
     def debug_db(self, request):
         from django.conf import settings
         from APPS.Personalizacion.models import MuebleBase
-        muebles = list(MuebleBase.objects.values())
+        
+        # Try to create a test object
+        test_obj = None
+        create_error = None
+        try:
+            test_obj = MuebleBase.objects.create(
+                name="Test Chair",
+                base_price=100.00,
+                image_url="/media/uploads/test.png",
+                wood_type="Pine"
+            )
+        except Exception as e:
+            create_error = str(e)
+            
+        muebles_after_create = list(MuebleBase.objects.values())
+        
+        # Try to delete the test object
+        delete_error = None
+        if test_obj:
+            try:
+                test_obj.delete()
+            except Exception as e:
+                delete_error = str(e)
+                
+        muebles_after_delete = list(MuebleBase.objects.values())
+        
         return Response({
             "databases": settings.DATABASES,
-            "muebles": muebles,
-            "user": str(request.user),
-            "auth": str(request.auth),
+            "create_error": create_error,
+            "delete_error": delete_error,
+            "muebles_after_create": muebles_after_create,
+            "muebles_after_delete": muebles_after_delete,
         })
 
     def create(self, request, *args, **kwargs):
