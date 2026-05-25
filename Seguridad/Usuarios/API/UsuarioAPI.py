@@ -135,3 +135,117 @@ class UsuarioViewsSet (ModelViewSet):
                 {"error": "El enlace de restablecimiento es inválido o ha expirado."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+    @action(detail=False, methods=['post'], url_path='enviar_correo_masivo')
+    def enviar_correo_masivo(self, request):
+        if not request.user or request.user.is_anonymous or request.user.rol != 'admin':
+            return Response(
+                {"error": "No tienes permisos de administrador para realizar esta acción."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        subject = request.data.get('subject')
+        title = request.data.get('title')
+        message = request.data.get('message')
+
+        if not subject or not title or not message:
+            return Response(
+                {"error": "Los campos 'subject', 'title' y 'message' son requeridos."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 1. Obtener correos únicos de clientes y suscriptores
+        from APPS.Suscripcion.models import Suscriptor
+        
+        emails_usuarios = Usuario.objects.filter(rol='cliente', email__isnull=False).exclude(email='').values_list('email', flat=True)
+        emails_suscriptores = Suscriptor.objects.all().values_list('email', flat=True)
+        
+        unique_emails = set(list(emails_usuarios) + list(emails_suscriptores))
+        if not unique_emails:
+            return Response(
+                {"error": "No hay ningún cliente o suscriptor registrado en la base de datos."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. Obtener productos activos para el catálogo en el correo
+        from APPS.Producto.models import Producto
+        productos_activos = Producto.objects.filter(esta_activo=True)[:10]  # Limitamos a 10 productos para no saturar el correo
+        
+        # 3. Formatear la lista de productos en HTML
+        productos_html = ""
+        for prod in productos_activos:
+            img_url = "https://picsum.photos/seed/mueble/300/200"
+            if prod.url_miniatura:
+                img_url = f"https://api.angelamuebleria.business{prod.url_miniatura.url}"
+                
+            desc_text = prod.descripcion[:100] + "..." if prod.descripcion and len(prod.descripcion) > 100 else (prod.descripcion or "")
+            
+            productos_html += f"""
+            <div style="border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 20px; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                    <tr>
+                        <td width="35%" style="padding: 15px; vertical-align: top;">
+                            <img src="{img_url}" alt="{prod.nombre}" style="width: 100%; max-width: 150px; height: auto; border-radius: 8px; object-fit: cover;" />
+                        </td>
+                        <td width="65%" style="padding: 15px 15px 15px 0; vertical-align: top; text-align: left;">
+                            <h4 style="margin: 0 0 5px 0; color: #2c3e50; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px;">{prod.nombre}</h4>
+                            <p style="margin: 0 0 10px 0; color: #7f8c8d; font-size: 12px; line-height: 1.4;">{desc_text}</p>
+                            <div style="font-weight: bold; color: #c5a059; font-size: 16px; margin-bottom: 10px;">C$ {float(prod.precio_base):,.2f}</div>
+                            <a href="https://angelamuebleria.business/" style="background-color: #2c3e50; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-block;">Ver Detalle</a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            """
+
+        # 4. Crear el HTML completo del correo
+        mensaje_html = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+                <div style="background-color: #2c3e50; padding: 20px; text-align: center; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                    <h1 style="color: #ffffff; margin: 0; font-family: 'Georgia', serif; font-size: 24px;">Angela Mueblería</h1>
+                    <p style="color: #c5a059; margin: 5px 0 0 0; font-size: 12px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase;">Diseño y Tradición Nicaragüense</p>
+                </div>
+                
+                <div style="background-color: #ffffff; padding: 30px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; border: 1px solid #eee; border-top: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <h2 style="color: #2c3e50; font-size: 20px; margin-top: 0;">{title}</h2>
+                    <p style="color: #555; font-size: 14px; line-height: 1.6; white-space: pre-line;">{message}</p>
+                    
+                    {f'<h3 style="color: #2c3e50; border-bottom: 2px solid #c5a059; padding-bottom: 8px; margin-top: 30px; margin-bottom: 20px; font-family: Georgia, serif;">Catálogo Especial</h3>' if productos_html else ''}
+                    {productos_html}
+                    
+                    <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+                        <a href="https://angelamuebleria.business/" style="background-color: #c5a059; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 6px rgba(197,160,89,0.2);">Visitar Catálogo Completo</a>
+                    </div>
+                    
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
+                    <p style="font-size: 11px; color: #95a5a6; text-align: center; line-height: 1.4;">
+                        Este es un correo automático enviado a los clientes y suscriptores de Angela Mueblería.<br />
+                        Masatepe, Masaya, Nicaragua.
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+
+        # Enviar correos de manera asíncrona en un hilo
+        def send_bulk_emails():
+            for recipient_email in unique_emails:
+                try:
+                    send_mail(
+                        subject=subject,
+                        message=message,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[recipient_email],
+                        html_message=mensaje_html,
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    print(f"Error enviando correo masivo a {recipient_email}: {e}")
+
+        threading.Thread(target=send_bulk_emails).start()
+
+        return Response(
+            {"detail": f"Correo masivo en proceso de envío a {len(unique_emails)} destinatarios."},
+            status=status.HTTP_200_OK
+        )
