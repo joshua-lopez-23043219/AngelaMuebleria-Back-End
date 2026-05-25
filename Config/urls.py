@@ -36,6 +36,7 @@ from Config import settings
 from Config.views import upload_file
 from Seguridad.Usuarios.API.Urls import routerUsuario
 from Seguridad.Usuarios.API.AuthSerializer import MyTokenObtainPairSerializer
+from APPS.Personalizacion.API.Urls import routerPersonalizacion
 
 class MyTokenObtainPairView (TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -54,6 +55,7 @@ urlpatterns = [
     path('apiSuscripcion/', include(routerSuscripcion.urls)),
     path('apiVarianteProducto/',include(routerVarianteProducto.urls)),
     path('apiUsuarios/',include(routerUsuario.urls)),
+    path('apiPersonalizacion/', include(routerPersonalizacion.urls)),
 
     # Endpoint de subida genérica para comprobantes
     path('api/upload/', upload_file, name='upload_file'),

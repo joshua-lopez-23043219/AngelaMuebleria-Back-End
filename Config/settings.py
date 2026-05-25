@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'APPS.VarianteProducto',
     'Seguridad.Usuarios',
     'APPS.Suscripcion',
+    'APPS.Personalizacion',
 
 ]
 
