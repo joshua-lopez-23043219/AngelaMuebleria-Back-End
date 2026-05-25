@@ -13,11 +13,24 @@ class MuebleBaseViewsSet(ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def debug_db(self, request):
+        from rest_framework.test import APIClient
         from django.contrib.auth import get_user_model
         User = get_user_model()
-        users = list(User.objects.values('id', 'username', 'email', 'rol', 'is_superuser', 'is_staff', 'is_active'))
+        
+        try:
+            admin_user = User.objects.get(username="AngelaMuebleria")
+            client = APIClient()
+            client.force_authenticate(user=admin_user)
+            response = client.delete('/apiPersonalizacion/MuebleBase/4/')
+            status_code = response.status_code
+            content = response.content.decode('utf-8', errors='ignore')
+        except Exception as e:
+            status_code = 500
+            content = f"Exception: {str(e)}"
+            
         return Response({
-            "users": users
+            "status_code": status_code,
+            "content": content
         })
 
     def create(self, request, *args, **kwargs):
