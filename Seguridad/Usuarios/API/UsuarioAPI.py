@@ -1,11 +1,14 @@
 from django.contrib.auth.tokens import default_token_generator
-from django.utils.encoding import force_str
-from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str, force_bytes
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.core.mail import send_mail
+from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+import threading
 
 from Seguridad.Usuarios.API.SerializerUsuario import SerializerUsuario
 from Seguridad.Usuarios.models import Usuario
@@ -38,3 +41,97 @@ class UsuarioViewsSet (ModelViewSet):
         else:
             # Redirigimos al frontend con un mensaje de error
             return HttpResponseRedirect("https://angelamuebleria.business/?activated=false")
+
+    @action(detail=False, methods=['post'], url_path='recuperar_contrasena')
+    def recuperar_contrasena(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response(
+                {"error": "El correo electrónico es requerido."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            user = Usuario.objects.get(email=email)
+        except Usuario.DoesNotExist:
+            return Response(
+                {"error": "No se encontró ningún usuario registrado con este correo electrónico."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        
+        # Enlace del frontend para restablecer contraseña
+        enlace_restablecimiento = f"https://angelamuebleria.business/?action=reset-password&uid={uid}&token={token}"
+        
+        asunto = "Restablece tu contraseña - Mueblería Ángela"
+        mensaje_texto = f"Hola {user.username},\n\nHemos recibido una solicitud para restablecer tu contraseña en Mueblería Ángela. Para cambiarla, haz clic en el siguiente enlace:\n\n{enlace_restablecimiento}\n\nSi no solicitaste este cambio, por favor ignora este correo."
+        
+        mensaje_html = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #c5a059; text-align: center; font-family: 'Georgia', serif;">Restablece tu Contraseña</h2>
+                <p>Hola <strong>{user.username}</strong>,</p>
+                <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en Mueblería Ángela.</p>
+                <p>Para elegir una nueva contraseña, haz clic en el siguiente botón:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{enlace_restablecimiento}" style="background-color: #c5a059; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Restablecer Contraseña</a>
+                </div>
+                <p style="font-size: 12px; color: #7f8c8d; text-align: center;">Si el botón no funciona, copia y pega el siguiente enlace en tu navegador:</p>
+                <p style="font-size: 12px; color: #7f8c8d; text-align: center; word-break: break-all;">{enlace_restablecimiento}</p>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                <p style="font-size: 11px; color: #95a5a6; text-align: center;">Si no solicitaste este cambio, puedes ignorar este correo de forma segura.</p>
+            </body>
+        </html>
+        """
+
+        def send_email_thread():
+            try:
+                send_mail(
+                    subject=asunto,
+                    message=mensaje_texto,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    html_message=mensaje_html,
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"Error enviando correo de recuperación: {e}")
+
+        threading.Thread(target=send_email_thread).start()
+        
+        return Response(
+            {"detail": "Se ha enviado un correo electrónico con instrucciones para restablecer su contraseña."},
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=['post'], url_path='restablecer_contrasena')
+    def restablecer_contrasena(self, request):
+        uidb64 = request.data.get('uidb64')
+        token = request.data.get('token')
+        new_password = request.data.get('new_password')
+        
+        if not uidb64 or not token or not new_password:
+            return Response(
+                {"error": "Todos los campos son requeridos (uidb64, token, new_password)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = Usuario.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, Usuario.DoesNotExist):
+            user = None
+            
+        if user is not None and default_token_generator.check_token(user, token):
+            user.set_password(new_password)
+            user.save()
+            return Response(
+                {"detail": "Contraseña restablecida exitosamente."},
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response(
+                {"error": "El enlace de restablecimiento es inválido o ha expirado."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
