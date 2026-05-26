@@ -14,6 +14,8 @@ class SerializerProducto(serializers.ModelSerializer):
     type = serializers.CharField(source='tipo_producto', required=False, default='otro')
     code = serializers.CharField(source='codigo_producto', read_only=True)
     
+    dimensions = serializers.CharField(source='dimensiones', required=False, allow_blank=True, allow_null=True)
+    
     # Campo para almacenar modelo 3D (.glb / .gltf)
     model_3d_url = serializers.CharField(write_only=True, required=False, allow_null=True, allow_blank=True)
     
@@ -28,7 +30,7 @@ class SerializerProducto(serializers.ModelSerializer):
             'id', 'name', 'price', 'description', 'wood_type', 
             'image_url', 'image_url_read', 'category', 'category_read', 
             'stock', 'esta_activo', 'type', 'code', 
-            'model_3d_url', 'model_3d_url_read'
+            'model_3d_url', 'model_3d_url_read', 'dimensions'
         ]
 
     def get_image_url_read(self, obj):
