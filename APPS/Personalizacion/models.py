@@ -5,6 +5,7 @@ class MuebleBase(models.Model):
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
     image_url = models.CharField(max_length=500)
     wood_type = models.CharField(max_length=100, default='N/A')
+    dimensions = models.CharField(max_length=100, default='', blank=True)
 
     def __str__(self):
         return self.name

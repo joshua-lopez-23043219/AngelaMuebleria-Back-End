@@ -25,6 +25,11 @@ class MuebleBaseViewsSet(ModelViewSet):
             return Response({"error": "No tienes permisos de administrador para realizar esta acción."}, status=status.HTTP_403_FORBIDDEN)
         return super().update(request, *args, **kwargs)
 
+    def partial_update(self, request, *args, **kwargs):
+        if not request.user or request.user.is_anonymous or request.user.rol != 'admin':
+            return Response({"error": "No tienes permisos de administrador para realizar esta acción."}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
 class ColorMaterialViewsSet(ModelViewSet):
     queryset = ColorMaterial.objects.all()
     serializer_class = SerializerColorMaterial
@@ -44,3 +49,8 @@ class ColorMaterialViewsSet(ModelViewSet):
         if not request.user or request.user.is_anonymous or request.user.rol != 'admin':
             return Response({"error": "No tienes permisos de administrador para realizar esta acción."}, status=status.HTTP_403_FORBIDDEN)
         return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        if not request.user or request.user.is_anonymous or request.user.rol != 'admin':
+            return Response({"error": "No tienes permisos de administrador para realizar esta acción."}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
