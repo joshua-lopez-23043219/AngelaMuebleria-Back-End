@@ -223,13 +223,14 @@ class SerializerPedidos(serializers.ModelSerializer):
         # Mapeo de campos esperados por el frontend
         data['created_at'] = instance.creado_en.strftime("%Y-%m-%dT%H:%M:%SZ") if instance.creado_en else None
         
-        # Mapeo de estado para que coincida con el frontend
         estado_map = {
             'pendiente': 'pending',
             'en_proceso': 'processing',
             'listo': 'ready',
             'entregado': 'delivered',
             'cancelado': 'cancelled',
+            'devolucion_pendiente': 'refund_pending',
+            'devuelto': 'refunded',
             'pending': 'pending',
             'payment_review': 'payment_review',
             'payment_validated': 'payment_validated',
@@ -237,6 +238,8 @@ class SerializerPedidos(serializers.ModelSerializer):
             'ready': 'ready',
             'delivered': 'delivered',
             'cancelled': 'cancelled',
+            'refund_pending': 'refund_pending',
+            'refunded': 'refunded',
         }
         data['status'] = estado_map.get(instance.estado, 'pending')
         

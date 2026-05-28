@@ -33,11 +33,29 @@ class PedidosViewsSet(ModelViewSet):
         from django.db.models import Sum
         revenue = Pedido.objects.filter(estado__in=['en_proceso', 'listo', 'entregado']).aggregate(total=Sum('total'))['total'] or 0
         
+        # Devoluciones (Devuelto)
+        refunded_amount = Pedido.objects.filter(estado='devuelto').aggregate(total=Sum('total'))['total'] or 0
+        refunded_orders = Pedido.objects.filter(estado='devuelto').count()
+        
+        # Devoluciones por fecha (Semanal y mensual)
+        from django.utils import timezone
+        import datetime
+        now = timezone.now()
+        start_of_week = now - datetime.timedelta(days=7)
+        start_of_month = now - datetime.timedelta(days=30)
+        
+        refunded_this_week = Pedido.objects.filter(estado='devuelto', actualizado_en__gte=start_of_week).aggregate(total=Sum('total'))['total'] or 0
+        refunded_this_month = Pedido.objects.filter(estado='devuelto', actualizado_en__gte=start_of_month).aggregate(total=Sum('total'))['total'] or 0
+        
         data = {
             "revenue": float(revenue),
             "orders": Pedido.objects.exclude(estado='cancelado').count(),
             "products": Producto.objects.count(),
-            "lowStock": Producto.objects.filter(stock__lt=5).count()
+            "lowStock": Producto.objects.filter(stock__lt=5).count(),
+            "refundedAmount": float(refunded_amount),
+            "refundedOrders": refunded_orders,
+            "refundedThisWeek": float(refunded_this_week),
+            "refundedThisMonth": float(refunded_this_month)
         }
         return Response(data, status=status.HTTP_200_OK)
 
@@ -81,7 +99,9 @@ class PedidosViewsSet(ModelViewSet):
             'processing': 'en_proceso',
             'ready': 'listo',
             'delivered': 'entregado',
-            'cancelled': 'cancelado'
+            'cancelled': 'cancelado',
+            'refund_pending': 'devolucion_pendiente',
+            'refunded': 'devuelto'
         }
         
         estado_db = reverse_map.get(nuevo_estado, nuevo_estado)
@@ -94,6 +114,22 @@ class PedidosViewsSet(ModelViewSet):
             if pago:
                 pago.estado = 'completado'
                 pago.save()
+                
+        # Lógica extra: Si se aprueba/efectúa la devolución (estado es devuelto)
+        if estado_db == 'devuelto':
+            from django.db import transaction
+            with transaction.atomic():
+                # Reembolsar pagos si aplica
+                for pago in pedido.pagos.all():
+                    if pago.estado in ['completado', 'pendiente']:
+                        pago.estado = 'reembolsado'
+                        pago.save()
+                
+                # Devolver stock a los productos
+                for detalle in pedido.detalles.all():
+                    producto = detalle.producto
+                    producto.stock += detalle.cantidad
+                    producto.save()
         
         # Devolver el objeto serializado actualizado
         serializer = self.get_serializer(pedido)
@@ -132,5 +168,23 @@ class PedidosViewsSet(ModelViewSet):
                     pago.estado = 'reembolsado'
                     pago.save()
                     
+        serializer = self.get_serializer(pedido)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def solicitar_devolucion(self, request, pk=None):
+        pedido = self.get_object()
+        
+        # Verificar permisos: El pedido pertenece al usuario o es administrador
+        is_admin = request.user.is_superuser or (hasattr(request.user, 'rol') and request.user.rol == 'admin')
+        if pedido.usuario != request.user and not is_admin:
+            return Response({"error": "No tienes permiso para solicitar devolución de este pedido"}, status=status.HTTP_403_FORBIDDEN)
+            
+        if pedido.estado in ['cancelado', 'devolucion_pendiente', 'devuelto']:
+            return Response({"error": f"El pedido no se encuentra en un estado elegible para devolución. Estado actual: {pedido.estado}"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        pedido.estado = 'devolucion_pendiente'
+        pedido.save()
+        
         serializer = self.get_serializer(pedido)
         return Response(serializer.data, status=status.HTTP_200_OK)

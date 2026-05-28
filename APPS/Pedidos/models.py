@@ -9,6 +9,8 @@ class Pedido(models.Model):
         ('listo', 'Listo'),
         ('entregado', 'Entregado'),
         ('cancelado', 'Cancelado'),
+        ('devolucion_pendiente', 'Devolución Pendiente'),
+        ('devuelto', 'Devuelto'),
     )
     OPCIONES_ENTREGA = (
         ('local', 'Retiro en el local'),
