@@ -38,8 +38,11 @@ from Seguridad.Usuarios.API.Urls import routerUsuario
 from Seguridad.Usuarios.API.AuthSerializer import MyTokenObtainPairSerializer
 from APPS.Personalizacion.API.Urls import routerPersonalizacion
 
+from Seguridad.throttling import AuthRateThrottle
+
 class MyTokenObtainPairView (TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+    throttle_classes = [AuthRateThrottle]
 
 urlpatterns = [
     path('admin/', admin.site.urls),

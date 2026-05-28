@@ -24,10 +24,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-iqt3f#318-$y@u5p%!p)cy%n!e-6f9g&beb#*2@vv0w&1f1o9v'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-iqt3f#318-$y@u5p%!p)cy%n!e-6f9g&beb#*2@vv0w&1f1o9v')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = not bool(os.environ.get('RAILWAY_ENVIRONMENT'))
+
+# Security Headers & SSL
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_REFERRER_POLICY = 'same-origin'
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
 
 ALLOWED_HOSTS = []
 
@@ -84,7 +98,17 @@ ROOT_URLCONF = 'Config.urls'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/min',
+        'user': '300/min',
+        'auth': '10/min',
+        'email_spam': '5/min',
+    }
 }
 
 SIMPLE_JWT = {
@@ -114,7 +138,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Config.wsgi.application'
 
-CORS_ALLOW_ALL_ORIGINS = True
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        'https://angelamuebleria.business',
+        'https://www.angelamuebleria.business',
+        'https://web-production-93930.up.railway.app',
+    ]
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases

@@ -14,10 +14,42 @@ class SerializerReglaCombo(ModelSerializer):
     producto_requerido_nombre = serializers.SerializerMethodField()
     producto_asociado_nombre = serializers.SerializerMethodField()
     productos_detalle = serializers.SerializerMethodField()
+    imagen_url = serializers.CharField(write_only=True, required=False, allow_null=True, allow_blank=True)
+    imagen_url_read = serializers.SerializerMethodField(method_name='get_imagen_url_read')
 
     class Meta:
         model = ReglaCombo
         fields = '__all__'
+
+    def get_imagen_url_read(self, obj):
+        request = self.context.get('request')
+        if obj.imagen:
+            if request is not None:
+                return request.build_absolute_uri(obj.imagen.url)
+            return obj.imagen.url
+        return None
+
+    def create(self, validated_data):
+        imagen_url = validated_data.pop('imagen_url', None)
+        if imagen_url:
+            relative_path = imagen_url.split('/media/')[-1] if '/media/' in imagen_url else imagen_url
+            validated_data['imagen'] = relative_path
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'imagen_url' in validated_data:
+            imagen_url = validated_data.pop('imagen_url')
+            if imagen_url:
+                relative_path = imagen_url.split('/media/')[-1] if '/media/' in imagen_url else imagen_url
+                instance.imagen = relative_path
+            else:
+                instance.imagen = None
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['imagen_url'] = data.pop('imagen_url_read')
+        return data
 
     def get_producto_requerido_nombre(self, obj):
         if obj.producto_requerido:

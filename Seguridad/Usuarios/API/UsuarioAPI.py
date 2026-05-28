@@ -12,6 +12,7 @@ import threading
 
 from Seguridad.Usuarios.API.SerializerUsuario import SerializerUsuario
 from Seguridad.Usuarios.models import Usuario
+from Seguridad.throttling import AuthRateThrottle, EmailSpamRateThrottle
 
 
 class UsuarioViewsSet (ModelViewSet):
@@ -19,6 +20,13 @@ class UsuarioViewsSet (ModelViewSet):
     #permission_classes = [IsAuthenticated]
     queryset = Usuario.objects.all()
     serializer_class = SerializerUsuario
+
+    def get_throttles(self):
+        if self.action == 'create':
+            return [AuthRateThrottle()]
+        elif self.action in ['recuperar_contrasena', 'restablecer_contrasena']:
+            return [EmailSpamRateThrottle()]
+        return super().get_throttles()
 
     @action(detail=False, methods=['get'], url_path='activar/(?P<uidb64>[^/.]+)/(?P<token>[^/.]+)')
     def activar(self, request, uidb64=None, token=None):

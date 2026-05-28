@@ -65,6 +65,7 @@ class ReglaCombo(models.Model):
         help_text="Precio fijo para el combo"
     )
     creado_en = models.DateTimeField(auto_now_add=True)
+    imagen = models.ImageField(upload_to='combos/', null=True, blank=True, help_text="Foto completa del combo")
 
     def __str__(self):
         try:

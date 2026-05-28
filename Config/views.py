@@ -14,10 +14,23 @@ def upload_file(request):
         return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
         
     file = request.FILES['file']
+    
+    # Validation checks
+    allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'glb', 'gltf'}
+    if '.' not in file.name:
+        return Response({"error": "File has no extension"}, status=status.HTTP_400_BAD_REQUEST)
+        
+    ext = file.name.split('.')[-1].lower()
+    if ext not in allowed_extensions:
+        return Response({"error": f"Extension .{ext} is not allowed"}, status=status.HTTP_400_BAD_REQUEST)
+        
+    max_size = 25 * 1024 * 1024  # 25 MB
+    if file.size > max_size:
+        return Response({"error": "File size exceeds the 25MB limit"}, status=status.HTTP_400_BAD_REQUEST)
+        
     upload_type = request.POST.get('type', 'general')
     
     # Generate unique filename
-    ext = file.name.split('.')[-1]
     filename = f"{uuid.uuid4().hex}.{ext}"
     path = f"uploads/{upload_type}/{filename}"
     
