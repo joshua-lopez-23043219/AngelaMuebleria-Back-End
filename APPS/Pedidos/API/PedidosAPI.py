@@ -282,6 +282,16 @@ class PedidosViewsSet(ModelViewSet):
     def debug_orders(self, request):
         import traceback
         from django.db import connection
+        from django.core.management import call_command
+        
+        # Auto-run migrations on production database when this debug endpoint is hit
+        migration_status = ""
+        try:
+            call_command('migrate', interactive=False)
+            migration_status = "Success"
+        except Exception as migrate_err:
+            migration_status = f"Error: {migrate_err}\n{traceback.format_exc()}"
+
         try:
             orders = Pedido.objects.all()
             data = []
@@ -295,23 +305,30 @@ class PedidosViewsSet(ModelViewSet):
                     "total": str(o.total),
                     "estado": o.estado
                 })
-            return Response({"status": "success", "data": data})
+            return Response({
+                "status": "success",
+                "migration_status": migration_status,
+                "data": data
+            })
         except Exception as e:
             tb = traceback.format_exc()
             # Let's inspect Pedidos_pedido table columns
             columns = []
             try:
                 with connection.cursor() as cursor:
-                    cursor.execute("SELECT * FROM Pedidos_pedido LIMIT 1")
+                    # Use double quotes for case-sensitive table name in PostgreSQL
+                    cursor.execute('SELECT * FROM "Pedidos_pedido" LIMIT 1')
                     columns = [col[0] for col in cursor.description]
             except Exception as schema_err:
                 columns = f"Error getting columns: {schema_err}"
             
             return Response({
                 "status": "error",
+                "migration_status": migration_status,
                 "error": str(e),
                 "traceback": tb,
                 "columns": columns
             }, status=200) # Return 200 so we can read it easily
+
 
 
