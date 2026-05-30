@@ -277,3 +277,20 @@ class PedidosViewsSet(ModelViewSet):
         
         serializer = self.get_serializer(pedido)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def debug_orders(self, request):
+        orders = Pedido.objects.all()
+        data = []
+        for o in orders:
+            data.append({
+                "id": o.id,
+                "usuario": o.usuario.username,
+                "metodo_entrega": o.metodo_entrega,
+                "direccion_exacta": o.direccion_exacta,
+                "costo_envio": str(o.costo_envio),
+                "total": str(o.total),
+                "estado": o.estado
+            })
+        return Response(data)
+
