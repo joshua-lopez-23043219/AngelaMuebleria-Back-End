@@ -8,9 +8,19 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
 """
 
 import os
-
+import django
 from django.core.wsgi import get_wsgi_application
+from django.core.management import call_command
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Config.settings')
+
+# Execute database migrations programmatically at startup
+try:
+    django.setup()
+    print("Running startup migrations...")
+    call_command('migrate', interactive=False)
+    print("Startup migrations completed successfully.")
+except Exception as e:
+    print(f"Error running startup migrations: {e}")
 
 application = get_wsgi_application()
