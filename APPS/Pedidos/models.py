@@ -19,6 +19,7 @@ class Pedido(models.Model):
 
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='pedidos')
     metodo_entrega = models.CharField(max_length=20, choices=OPCIONES_ENTREGA, default='domicilio')
+    direccion_exacta = models.TextField(null=True, blank=True)
 
     # Desglose financiero actualizado
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)

@@ -204,3 +204,76 @@ class PedidosViewsSet(ModelViewSet):
         
         serializer = self.get_serializer(pedido)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['patch'])
+    def set_shipping_cost(self, request, pk=None):
+        if not (hasattr(request.user, 'rol') and request.user.rol == 'admin'):
+            return Response({"error": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
+            
+        pedido = self.get_object()
+        cost = request.data.get('shipping_cost')
+        if cost is None:
+            return Response({"error": "Costo no proporcionado"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from decimal import Decimal
+        try:
+            cost_dec = Decimal(str(cost))
+        except Exception:
+            return Response({"error": "Costo inválido"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        pedido.costo_envio = cost_dec
+        pedido.total = (pedido.subtotal - pedido.descuento_total) + cost_dec
+        pedido.save()
+        
+        serializer = self.get_serializer(pedido)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def pay_shipping(self, request, pk=None):
+        pedido = self.get_object()
+        
+        payment_method = request.data.get('shipping_payment_method')
+        receipt_url = request.data.get('shipping_payment_receipt_url')
+        paypal_order_id = request.data.get('shipping_paypal_order_id')
+        
+        if not payment_method:
+            return Response({"error": "Método de pago no proporcionado"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        metodo_pago_db = 'transferencia' if payment_method == 'receipt' else 'paypal'
+        estado_pago = 'completado' if metodo_pago_db == 'paypal' else 'pendiente'
+        
+        relative_path = None
+        if receipt_url:
+            relative_path = receipt_url.split('/media/')[-1] if '/media/' in receipt_url else receipt_url
+            
+        from APPS.Pago.models import Pago
+        pago, created = Pago.objects.update_or_create(
+            pedido=pedido,
+            tipo_pago='delivery',
+            defaults={
+                'metodo_pago': metodo_pago_db,
+                'id_transaccion': paypal_order_id,
+                'imagen_comprobante': relative_path,
+                'monto': pedido.costo_envio,
+                'estado': estado_pago
+            }
+        )
+        
+        serializer = self.get_serializer(pedido)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def validate_shipping(self, request, pk=None):
+        if not (hasattr(request.user, 'rol') and request.user.rol == 'admin'):
+            return Response({"error": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
+            
+        pedido = self.get_object()
+        pago_delivery = pedido.pagos.filter(tipo_pago='delivery').first()
+        if not pago_delivery:
+            return Response({"error": "No existe registro de pago de envío para validar"}, status=status.HTTP_404_NOT_FOUND)
+            
+        pago_delivery.estado = 'completado'
+        pago_delivery.save()
+        
+        serializer = self.get_serializer(pedido)
+        return Response(serializer.data, status=status.HTTP_200_OK)

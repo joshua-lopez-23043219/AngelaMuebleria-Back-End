@@ -166,6 +166,7 @@ class SerializerPedidos(serializers.ModelSerializer):
         pedido = Pedido.objects.create(
             usuario=usuario,
             metodo_entrega=metodo_entrega,
+            direccion_exacta=shipping_address if metodo_entrega == 'domicilio' else None,
             subtotal=subtotal,
             descuento_total=descuento_total,
             costo_envio=costo_envio,
@@ -233,6 +234,7 @@ class SerializerPedidos(serializers.ModelSerializer):
         data = super().to_representation(instance)
         
         # Mapeo de campos esperados por el frontend
+        data['shipping_address'] = instance.direccion_exacta
         data['created_at'] = instance.creado_en.strftime("%Y-%m-%dT%H:%M:%SZ") if instance.creado_en else None
         
         estado_map = {
@@ -279,11 +281,17 @@ class SerializerPedidos(serializers.ModelSerializer):
         # Shipping status y datos de pago de delivery
         pago_delivery = instance.pagos.filter(tipo_pago='delivery').first()
         if pago_delivery:
-            data['shipping_status'] = 'paid' if pago_delivery.estado == 'completado' else 'pending'
+            # Si el pago está completado, el estado es 'validated' (validado por admin)
+            # Si está pendiente, el estado es 'paid' (pagado por cliente, pendiente de revisar)
+            data['shipping_status'] = 'validated' if pago_delivery.estado == 'completado' else 'paid'
             data['shipping_payment_method'] = 'paypal' if pago_delivery.metodo_pago == 'paypal' else 'receipt'
             data['shipping_paypal_order_id'] = pago_delivery.id_transaccion
             data['shipping_payment_receipt_url'] = pago_delivery.imagen_comprobante.url if pago_delivery.imagen_comprobante else None
         else:
-            data['shipping_status'] = 'pending'
+            # Si no hay pago pero se cotizó, el estado es 'quoted'
+            if instance.costo_envio > 0:
+                data['shipping_status'] = 'quoted'
+            else:
+                data['shipping_status'] = 'pending'
             
         return data
