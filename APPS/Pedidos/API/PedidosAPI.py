@@ -280,17 +280,38 @@ class PedidosViewsSet(ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[])
     def debug_orders(self, request):
-        orders = Pedido.objects.all()
-        data = []
-        for o in orders:
-            data.append({
-                "id": o.id,
-                "usuario": o.usuario.username,
-                "metodo_entrega": o.metodo_entrega,
-                "direccion_exacta": o.direccion_exacta,
-                "costo_envio": str(o.costo_envio),
-                "total": str(o.total),
-                "estado": o.estado
-            })
-        return Response(data)
+        import traceback
+        from django.db import connection
+        try:
+            orders = Pedido.objects.all()
+            data = []
+            for o in orders:
+                data.append({
+                    "id": o.id,
+                    "usuario": o.usuario.username if o.usuario else None,
+                    "metodo_entrega": o.metodo_entrega,
+                    "direccion_exacta": o.direccion_exacta,
+                    "costo_envio": str(o.costo_envio),
+                    "total": str(o.total),
+                    "estado": o.estado
+                })
+            return Response({"status": "success", "data": data})
+        except Exception as e:
+            tb = traceback.format_exc()
+            # Let's inspect Pedidos_pedido table columns
+            columns = []
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT * FROM Pedidos_pedido LIMIT 1")
+                    columns = [col[0] for col in cursor.description]
+            except Exception as schema_err:
+                columns = f"Error getting columns: {schema_err}"
+            
+            return Response({
+                "status": "error",
+                "error": str(e),
+                "traceback": tb,
+                "columns": columns
+            }, status=200) # Return 200 so we can read it easily
+
 
