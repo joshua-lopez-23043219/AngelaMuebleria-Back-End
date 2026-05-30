@@ -71,12 +71,27 @@ class PedidosViewsSet(ModelViewSet):
         detalles = pedido.detalles.all()
         data = []
         for d in detalles:
+            desc = d.detalles_personalizacion
+            wood_hex = None
+            fabric_hex = None
+            if desc:
+                try:
+                    import json
+                    parsed = json.loads(desc)
+                    if isinstance(parsed, dict):
+                        desc = parsed.get('description')
+                        wood_hex = parsed.get('wood_hex')
+                        fabric_hex = parsed.get('fabric_hex')
+                except Exception:
+                    pass
             data.append({
                 "id": d.producto.id,
                 "name": f"{d.producto.nombre} (Personalizado)" if d.detalles_personalizacion else d.producto.nombre,
                 "price": d.precio,
                 "quantity": d.cantidad,
-                "description": d.detalles_personalizacion,
+                "description": desc,
+                "wood_hex": wood_hex,
+                "fabric_hex": fabric_hex,
                 "image_url": d.producto.url_miniatura.url if d.producto.url_miniatura else None
             })
         return Response(data, status=status.HTTP_200_OK)

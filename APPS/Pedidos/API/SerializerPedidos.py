@@ -194,12 +194,18 @@ class SerializerPedidos(serializers.ModelSerializer):
                 producto.stock -= cantidad
                 producto.save()
                 
+            import json
+            custom_data = {
+                "description": item.get('description'),
+                "wood_hex": item.get('wood_hex'),
+                "fabric_hex": item.get('fabric_hex')
+            }
             DetallePedido.objects.create(
                 pedido=pedido,
                 producto=producto,
                 cantidad=cantidad,
                 precio=price,
-                detalles_personalizacion=item.get('description', None)
+                detalles_personalizacion=json.dumps(custom_data) if (item.get('description') or item.get('wood_hex') or item.get('fabric_hex')) else None
             )
 
         # 3. Registrar el Pago
