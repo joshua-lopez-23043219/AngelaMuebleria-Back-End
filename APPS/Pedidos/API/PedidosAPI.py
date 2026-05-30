@@ -73,9 +73,10 @@ class PedidosViewsSet(ModelViewSet):
         for d in detalles:
             data.append({
                 "id": d.producto.id,
-                "name": d.producto.nombre,
+                "name": f"{d.producto.nombre} (Personalizado)" if d.detalles_personalizacion else d.producto.nombre,
                 "price": d.precio,
                 "quantity": d.cantidad,
+                "description": d.detalles_personalizacion,
                 "image_url": d.producto.url_miniatura.url if d.producto.url_miniatura else None
             })
         return Response(data, status=status.HTTP_200_OK)

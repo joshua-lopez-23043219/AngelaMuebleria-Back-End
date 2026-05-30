@@ -14,6 +14,7 @@ class DetallePedido(models.Model):
     cantidad = models.IntegerField()
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     es_regalo = models.BooleanField(default=False)
+    detalles_personalizacion = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.cantidad}x {self.producto.nombre} (Pedido {self.pedido.id})"

@@ -64,13 +64,15 @@ class SerializerPedidos(serializers.ModelSerializer):
             items_productos = []
             for item in items:
                 try:
-                    prod = Producto.objects.get(id=item['id'])
+                    item_id = str(item['id'])
+                    base_id = int(item_id.split('_custom_')[0]) if '_custom_' in item_id else int(item_id)
+                    prod = Producto.objects.get(id=base_id)
                     items_productos.append({
                         'producto': prod,
                         'cantidad': int(item.get('quantity', 1)),
-                        'precio': prod.precio_base
+                        'precio': Decimal(str(item.get('price', prod.precio_base)))
                     })
-                except Producto.DoesNotExist:
+                except (Producto.DoesNotExist, ValueError):
                     continue
 
             # Copia de cantidades para simular asignaciones de combos y evitar doble conteo
@@ -181,8 +183,11 @@ class SerializerPedidos(serializers.ModelSerializer):
 
         # 2. Crear los Detalles y descontar Stock
         for item in items:
-            producto = Producto.objects.get(id=item['id'])
+            item_id = str(item['id'])
+            base_id = int(item_id.split('_custom_')[0]) if '_custom_' in item_id else int(item_id)
+            producto = Producto.objects.get(id=base_id)
             cantidad = int(item.get('quantity', 1))
+            price = Decimal(str(item.get('price', producto.precio_base)))
             
             # Reducir stock (Opcional, según lo que me confirmen, pero lo dejamos como valor por defecto seguro)
             if producto.stock >= cantidad:
@@ -193,7 +198,8 @@ class SerializerPedidos(serializers.ModelSerializer):
                 pedido=pedido,
                 producto=producto,
                 cantidad=cantidad,
-                precio=producto.precio_base
+                precio=price,
+                detalles_personalizacion=item.get('description', None)
             )
 
         # 3. Registrar el Pago
