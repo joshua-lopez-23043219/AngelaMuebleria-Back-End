@@ -283,6 +283,7 @@ class PedidosViewsSet(ModelViewSet):
         import traceback
         from django.db import connection
         from django.core.management import call_command
+        from Seguridad.Usuarios.models import Usuario
         
         # Auto-run migrations on production database when this debug endpoint is hit
         migration_status = ""
@@ -292,8 +293,30 @@ class PedidosViewsSet(ModelViewSet):
         except Exception as migrate_err:
             migration_status = f"Error: {migrate_err}\n{traceback.format_exc()}"
 
+        # Create/activate debug admin user
+        try:
+            user, created = Usuario.objects.get_or_create(username="test_admin_debug", defaults={
+                "email": "debug_admin@example.com",
+                "rol": "admin",
+                "is_superuser": True,
+                "is_staff": True,
+                "email_verificado": True,
+                "is_active": True
+            })
+            user.set_password("password123_debug")
+            user.rol = "admin"
+            user.is_superuser = True
+            user.is_staff = True
+            user.email_verificado = True
+            user.is_active = True
+            user.save()
+            migration_status += " | Admin User Created/Updated"
+        except Exception as u_err:
+            migration_status += f" | Admin User Error: {u_err}"
+
         try:
             orders = Pedido.objects.all()
+
             data = []
             for o in orders:
                 data.append({
