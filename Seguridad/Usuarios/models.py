@@ -16,6 +16,10 @@ class Usuario(AbstractUser):
     # NUEVO CAMPO: Para la confirmación de cuenta
     email_verificado = models.BooleanField(default=False,
                                            help_text="Se marca como True cuando el cliente hace clic en el enlace del correo")
+    
+    # NUEVO CAMPO: Para rastrear estado en tiempo real (Online/Offline)
+    ultima_actividad = models.DateTimeField(null=True, blank=True,
+                                            help_text="Fecha y hora del último request del usuario")
 
     def save(self, *args, **kwargs):
         # Magia: Si alguien es creado como superusuario por consola, asignarle el rol de admin automáticamente

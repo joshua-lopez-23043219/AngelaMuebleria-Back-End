@@ -16,10 +16,65 @@ from Seguridad.throttling import AuthRateThrottle, EmailSpamRateThrottle
 
 
 class UsuarioViewsSet (ModelViewSet):
-
-    #permission_classes = [IsAuthenticated]
     queryset = Usuario.objects.all()
     serializer_class = SerializerUsuario
+
+    def get_queryset(self):
+        user = self.request.user
+        if not user or user.is_anonymous:
+            return Usuario.objects.none()
+        
+        is_admin = user.is_superuser or (hasattr(user, 'rol') and user.rol == 'admin')
+        if is_admin:
+            return Usuario.objects.all().order_by('-date_joined')
+            
+        return Usuario.objects.filter(pk=user.pk)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return []
+        return [IsAuthenticated()]
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        is_admin = user.is_superuser or (hasattr(user, 'rol') and user.rol == 'admin')
+        if not is_admin:
+            # Prevent non-admin users from escalating privileges or changing status
+            original = self.get_object()
+            serializer.save(
+                rol=original.rol,
+                is_active=original.is_active,
+                email_verificado=original.email_verificado
+            )
+        else:
+            serializer.save()
+
+    @action(detail=True, methods=['post'])
+    def ban_user(self, request, pk=None):
+        if not (request.user and request.user.is_authenticated and (request.user.is_superuser or request.user.rol == 'admin')):
+            return Response({"error": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
+            
+        user = self.get_object()
+        # Toggle is_active status or set based on request body
+        is_active_val = request.data.get('is_active', False)
+        user.is_active = is_active_val
+        user.save()
+        
+        serializer = self.get_serializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def activar_manual(self, request, pk=None):
+        if not (request.user and request.user.is_authenticated and (request.user.is_superuser or request.user.rol == 'admin')):
+            return Response({"error": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
+            
+        user = self.get_object()
+        user.is_active = True
+        user.email_verificado = True
+        user.save()
+        
+        serializer = self.get_serializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def get_throttles(self):
         if self.action == 'create':
@@ -38,8 +93,8 @@ class UsuarioViewsSet (ModelViewSet):
             user = None
         from django.http import HttpResponseRedirect
         
-        # 2. Verificamos si el token es válido
-        if user is not None and default_token_generator.check_token(user, token):
+        # 2. Verificamos si el token es válido o si el usuario ya está verificado y activo
+        if user is not None and (default_token_generator.check_token(user, token) or (user.is_active and user.email_verificado)):
             user.is_active = True  # Activamos al usuario
             user.email_verificado = True
             user.save()
