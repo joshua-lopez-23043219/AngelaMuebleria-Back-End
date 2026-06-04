@@ -31,7 +31,7 @@ class UsuarioViewsSet (ModelViewSet):
         return Usuario.objects.filter(pk=user.pk)
 
     def get_permissions(self):
-        if self.action == 'create':
+        if self.action in ['create', 'activar', 'recuperar_contrasena', 'restablecer_contrasena']:
             return []
         return [IsAuthenticated()]
 
