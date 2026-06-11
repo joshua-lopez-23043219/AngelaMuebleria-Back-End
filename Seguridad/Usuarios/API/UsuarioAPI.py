@@ -312,3 +312,52 @@ class UsuarioViewsSet (ModelViewSet):
             {"detail": f"Correo masivo en proceso de envío a {len(unique_emails)} destinatarios."},
             status=status.HTTP_200_OK
         )
+
+    @action(detail=False, methods=['post'], url_path='enviar_correo_individual')
+    def enviar_correo_individual(self, request):
+        if not request.user or request.user.is_anonymous or request.user.rol != 'admin':
+            return Response(
+                {"error": "No tienes permisos de administrador para realizar esta acción."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        email = request.data.get('email')
+        subject = request.data.get('subject')
+        message = request.data.get('message')
+        
+        if not email or not subject or not message:
+            return Response({"error": "Destinatario, asunto y mensaje son requeridos."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        mensaje_html = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <div style="background-color: #2c3e50; padding: 15px; text-align: center; border-radius: 8px 8px 0 0;">
+                    <h2 style="color: #ffffff; margin: 0; font-family: Georgia, serif;">Angela Mueblería</h2>
+                </div>
+                <div style="padding: 20px; border: 1px solid #eee; border-top: none; border-radius: 0 0 8px 8px; background-color: #ffffff;">
+                    <p style="font-size: 14px; color: #444; white-space: pre-line;">{message}</p>
+                    <br>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin-top: 20px;" />
+                    <p style="font-size: 10px; color: #95a5a6; text-align: center; margin: 0;">
+                        Este es un mensaje directo enviado por el administrador de Angela Mueblería.
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+
+        def send_single_email_thread():
+            try:
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    html_message=mensaje_html,
+                    fail_silently=False
+                )
+            except Exception as e:
+                print(f"Error enviando correo individual a {email}: {e}")
+
+        threading.Thread(target=send_single_email_thread).start()
+        return Response({"detail": "Correo individual enviado exitosamente."}, status=status.HTTP_200_OK)

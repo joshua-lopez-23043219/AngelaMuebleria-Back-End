@@ -38,3 +38,48 @@ class SuscripcionViewsSet(ModelViewSet):
             
         except Suscriptor.DoesNotExist:
             return Response({"error": "El código de descuento no existe o es inválido."}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=['post'], url_path='generar-cupones')
+    def generar_cupones(self, request):
+        cantidad = int(request.data.get('cantidad', 1))
+        porcentaje = float(request.data.get('porcentaje', 10.00))
+        
+        if cantidad < 1 or cantidad > 100:
+            return Response({"error": "Cantidad inválida (máximo 100 cupones a la vez)."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        generated_codes = []
+        import string
+        import random
+        
+        for _ in range(cantidad):
+            # Create unique code
+            while True:
+                caracteres = string.ascii_uppercase + string.digits
+                codigo_aleatorio = ''.join(random.choice(caracteres) for i in range(6))
+                code = f"DESC-{codigo_aleatorio}"
+                # Check uniqueness in db
+                if not Suscriptor.objects.filter(codigo_descuento=code).exists():
+                    break
+                    
+            # Create dummy email
+            dummy_email = f"coupon-{codigo_aleatorio}@angelamuebleria.business"
+            # Check uniqueness of email (just in case)
+            while Suscriptor.objects.filter(email=dummy_email).exists():
+                codigo_aleatorio = ''.join(random.choice(caracteres) for i in range(6))
+                dummy_email = f"coupon-{codigo_aleatorio}@angelamuebleria.business"
+
+            # Save coupon using Suscriptor model
+            suscriptor = Suscriptor(
+                email=dummy_email,
+                codigo_descuento=code,
+                porcentaje_descuento=porcentaje,
+                fue_usado=False
+            )
+            suscriptor.save()
+            generated_codes.append({
+                "code": code,
+                "percentage": porcentaje
+            })
+            
+        return Response({"detail": f"Se generaron {cantidad} cupones exitosamente.", "coupons": generated_codes}, status=status.HTTP_200_OK)
+
