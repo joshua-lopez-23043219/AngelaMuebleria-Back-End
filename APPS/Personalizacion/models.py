@@ -22,3 +22,14 @@ class ColorMaterial(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.get_type_display()})"
+
+class MuebleColorModelo3D(models.Model):
+    mueble_base = models.ForeignKey('Personalizacion.MuebleBase', on_delete=models.CASCADE, related_name='modelos_color')
+    color = models.ForeignKey('Personalizacion.ColorMaterial', on_delete=models.CASCADE, related_name='modelos_mueble')
+    url_modelo_3d = models.FileField(upload_to='personalizacion/modelos_color/', null=True, blank=True)
+
+    class Meta:
+        unique_together = ('mueble_base', 'color')
+
+    def __str__(self):
+        return f"{self.mueble_base.name} - {self.color.name}"
